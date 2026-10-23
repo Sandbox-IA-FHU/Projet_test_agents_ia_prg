@@ -1,0 +1,15 @@
+# Fins de ligne Linux (LF) dans le dépôt, même si un fichier passe par Windows.
+# Ce fichier ne s'hérite PAS du dépôt .github de l'organisation : sans lui, un
+# poste Windows réécrit tout le dépôt en CRLF au premier commit.
+* text=auto eol=lf
+
+# Fichiers binaires : jamais convertis.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.ico binary
+*.docx binary
+*.xlsx binary
+*.pptx binary

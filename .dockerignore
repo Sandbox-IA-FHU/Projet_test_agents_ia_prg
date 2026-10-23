@@ -1,0 +1,12 @@
+# Jamais dans l'image : secrets, données, traces, caches, historique Git.
+.env
+.env.*
+!.env.example
+data/
+logs/
+traces/
+.git/
+.venv/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/

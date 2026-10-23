@@ -1,0 +1,48 @@
+# Services de l'agent.
+#
+# À LA CRÉATION DU PROJET : remplacer « agent-modele » par agent-<nom-du-projet>
+# dans ce fichier et dans le README. À l'import en production, ce fichier est
+# fusionné avec ceux des autres apps : un nom générique entrerait en collision.
+#
+# Aucun service ne reste lancé : l'agent, les tests et le lint tournent à la
+# demande, puis le conteneur disparaît (d'où l'absence de restart). Le profil
+# empêche qu'un « docker compose up -d » global le démarre.
+#   docker compose run --rm agent-modele pytest
+#   docker compose run --rm agent-modele ruff check .
+#   docker compose run --rm agent-modele ruff format --check .
+#   docker compose run --rm agent-modele python scripts/run_agent.py "une tâche"
+#   docker compose run --rm agent-modele python scripts/evaluate.py --limite 3
+#
+# Pas de GPU, pas de port exposé : l'agent appelle le LLM par son API.
+
+services:
+  agent-modele:
+    build: .
+    profiles: [agent]
+    # Utilisateur du conteneur, qui écrit dans le dépôt monté (fichiers de run,
+    # formatage). Par défaut 0:0, adapté au Docker rootless du serveur de
+    # staging : root dans le conteneur y est votre propre compte, sans aucun
+    # privilège. Avec un Docker qui n'est pas rootless, root dans le conteneur
+    # est le vrai root et laisserait des fichiers lui appartenant dans le
+    # dépôt monté : y définir AGENT_UID et AGENT_GID (id -u, id -g) dans le
+    # .env.
+    user: "${AGENT_UID:-0}:${AGENT_GID:-0}"
+    environment:
+      TZ: Europe/Paris
+      # Lues dans le .env du dossier où l'on lance docker compose, jamais
+      # écrites ici. config.py échoue au démarrage si LLM_BASE_URL manque.
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL_REVISION: ${LLM_MODEL_REVISION:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      APPROBATION: ${APPROBATION:-refus}
+      # Aucun cache écrit dans le dépôt monté.
+      RUFF_CACHE_DIR: /tmp/ruff-cache
+      UV_CACHE_DIR: /tmp/uv-cache
+      PYTEST_ADDOPTS: -p no:cacheprovider
+    volumes:
+      - .:/app
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true

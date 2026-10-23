@@ -1,0 +1,33 @@
+# Données réelles : jamais dans le dépôt. Voir DONNEES.md de l'organisation.
+data/
+logs/
+*.log
+*.csv
+*.tsv
+*.parquet
+*.xlsx
+*.xls
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets : seul .env.example est versionné.
+.env
+.env.*
+!.env.example
+
+# Traces d'exécution : une trace d'agent contient tout ce que l'agent a lu.
+traces/
+
+# Les jeux d'évaluation sont des données inventées : eux vivent dans le dépôt.
+!evaluations/jeux/**
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Divers
+.DS_Store

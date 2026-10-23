@@ -1,0 +1,23 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  ci:
+    uses: Sandbox-IA-FHU/.github/.github/workflows/reusable-python-ci.yml@main
+
+  # Propre à ce dépôt : la voie conteneur doit marcher autant que la voie uv,
+  # c'est celle du serveur et celle de l'import en production.
+  # Renommer « agent-modele » ici aussi à la création du projet.
+  conteneur:
+    name: conteneur
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Vérifier le compose
+        run: docker compose config -q
+
+      - name: Construire l'image et lancer tests et lint dedans
+        run: |
+          docker compose run --rm --build agent-modele pytest
+          docker compose run --rm agent-modele ruff check .
+          docker compose run --rm agent-modele ruff format --check .
