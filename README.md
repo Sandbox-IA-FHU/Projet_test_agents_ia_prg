@@ -199,10 +199,11 @@ que l'appel d'outils n'y est pas activé : on le signale à Florian, on ne le
 contourne jamais en analysant du texte libre.
 
 **Réflexion.** Le modèle peut réfléchir avant de répondre. Le serveur renvoie
-cette réflexion à part (`reasoning_content`) ; le client l'écarte toujours :
-elle n'est jamais prise pour la réponse, ne repart jamais dans l'historique,
-et n'apparaît dans aucune trace. Son niveau est la constante
-`REASONING_EFFORT` de `client.py`, consignée dans chaque fichier de run.
+cette réflexion à part (`reasoning_content`) : le client ne la prend jamais
+pour la réponse, et elle n'apparaît dans aucune trace ni aucun fichier de run.
+Par défaut, elle ne repart pas non plus dans l'historique (voir plus bas).
+Son niveau est la constante `REASONING_EFFORT` de `client.py`, consignée dans
+chaque fichier de run.
 
 | Niveau | Effet |
 |---|---|
@@ -219,6 +220,30 @@ ce paramètre.
 uv run --env-file .env python scripts/evaluate.py --reflexion low --etiquette reflexion-low
 uv run --env-file .env python scripts/evaluate.py --reflexion off --etiquette reflexion-off
 ```
+
+**Garder la réflexion dans l'historique — à mesurer.** Des essais faits côté
+serveur suggèrent que, dans une boucle d'outils, le modèle garde mieux le fil
+si on lui renvoie à chaque tour son message précédent avec sa réflexion, sous
+le champ `reasoning` (le nom que lit son modèle de conversation). C'est la
+constante `KEEP_REASONING_IN_HISTORY` de `client.py`, **désactivée par
+défaut** tant que la mesure n'est pas faite sur le jeu d'évaluation, et
+consignée dans chaque run (`garder_reflexion`). Même activée, la réflexion ne
+va qu'au modèle : jamais dans la trace, son résumé ni le fichier de run
+(`test_keptReasoningGoesBackToTheModelOnly`).
+
+La mesure : deux runs qui ne diffèrent **que** par ce paramètre, même niveau
+de réflexion.
+
+```bash
+uv run --env-file .env python scripts/evaluate.py --no-garder-reflexion --etiquette reflexion-ecartee
+uv run --env-file .env python scripts/evaluate.py --garder-reflexion --etiquette reflexion-gardee
+```
+
+On compare `tache_reussie`, `etapes_medianes` et `outil_interdit_appele`, qui
+doit rester à 0. Renvoyer la réflexion allonge l'entrée de chaque tour : la
+regarder aussi dans `jetons_par_tache`. On ne l'active que si la réussite
+progresse ou que les tours baissent, sans aucun outil interdit appelé — et on
+traduit l'écart en nombre de cas avant de conclure.
 
 **Le serveur est partagé** entre plusieurs projets. Un agent qui boucle ou une
 évaluation massive ralentit tout le monde : c'est la raison d'être du plafond

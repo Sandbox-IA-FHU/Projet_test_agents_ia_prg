@@ -22,7 +22,8 @@ d'avoir les chiffres sous les yeux.
    `uv run --env-file .env python scripts/evaluate.py --etiquette <étiquette>`
 3. Lis le fichier de run produit dans `evaluations/runs/`.
 4. Trouve le run comparable le plus récent — **même jeu, même bloc `modele`
-   (nom exposé, modèle réel, révision), même `reflexion`, même surface
+   (nom exposé, modèle réel, révision), même `reflexion`, même
+   `garder_reflexion`, même surface
    d'outils**. Le nom exposé est stable alors que le modèle derrière peut
    changer : ne compare jamais sur le seul nom. Un outil ajouté change le prompt système de chaque tour :
    les runs d'avant ne sont plus strictement comparables, dis-le.

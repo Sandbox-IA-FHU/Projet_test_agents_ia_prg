@@ -163,9 +163,10 @@ Les autres règles d'appel :
   permet de recalculer un coût si un projet passe un jour sur une API
   facturée, sans tout relancer.
 - **La réflexion d'un modèle n'est pas sa réponse.** Quand le serveur la
-  renvoie à part, le client l'écarte : elle ne repart pas dans l'historique,
-  n'apparaît dans aucun log ni aucune trace. Son niveau est un réglage
-  explicite, consigné dans le fichier de run.
+  renvoie à part, le client l'écarte : elle n'apparaît dans aucun log ni
+  aucune trace. Par défaut, elle ne repart pas dans l'historique ; la renvoyer
+  au modèle est un réglage explicite, mesuré. Son niveau et ce réglage sont
+  consignés dans le fichier de run.
 - Avec une API facturée, et seulement dans ce cas, les tarifs sont des
   constantes **datées en commentaire**, dans un seul module. Un tarif sans
   date est un tarif faux.

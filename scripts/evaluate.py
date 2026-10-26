@@ -27,6 +27,7 @@ from pathlib import Path
 
 from agent.approval import DenyAll
 from agent.client import (
+    KEEP_REASONING_IN_HISTORY,
     MAX_OUTPUT_TOKENS,
     REASONING_EFFORT,
     REASONING_EFFORTS,
@@ -64,6 +65,16 @@ def buildParser() -> argparse.ArgumentParser:
         choices=REASONING_EFFORTS,
         default=REASONING_EFFORT,
         help=f"Niveau de réflexion du modèle (défaut : {REASONING_EFFORT}).",
+    )
+    parser.add_argument(
+        "--garder-reflexion",
+        action=argparse.BooleanOptionalAction,
+        default=KEEP_REASONING_IN_HISTORY,
+        dest="garderReflexion",
+        help=(
+            "Renvoie au modèle, dans l'historique, la réflexion de son tour "
+            "précédent. Jamais écrite dans la trace ni dans le run."
+        ),
     )
     parser.add_argument(
         "--limite",
@@ -109,6 +120,7 @@ def main() -> int:
         model=config.model,
         apiKey=config.apiKey,
         reasoningEffort=args.reflexion,
+        keepReasoning=args.garderReflexion,
     )
     try:
         servedModel = client.servedModel()
@@ -119,7 +131,9 @@ def main() -> int:
 
     print(
         f"{len(cases)} cas, modèle {config.model} ({servedModel}), "
-        f"réflexion {args.reflexion}, prompt {DEFAULT_PROMPT.name}."
+        f"réflexion {args.reflexion} (gardée dans l'historique : "
+        f"{'oui' if args.garderReflexion else 'non'}), "
+        f"prompt {DEFAULT_PROMPT.name}."
     )
     print(
         f"Jusqu'à {args.maxIterations * len(cases)} appels au LLM partagé. "
@@ -171,6 +185,7 @@ def main() -> int:
             "max_iterations": args.maxIterations,
             "max_output_tokens": MAX_OUTPUT_TOKENS,
             "reflexion": args.reflexion,
+            "garder_reflexion": args.garderReflexion,
             "approbation": "refus",
         },
         "resultats": summary,

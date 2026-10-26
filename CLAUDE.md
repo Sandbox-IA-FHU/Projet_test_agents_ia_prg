@@ -86,8 +86,11 @@ qui rend l'agent plus capable mais moins lisible est une régression.
 - Appels d'outils au format `tools` / `tool_calls`. S'ils sont refusés par le
   serveur, le signaler à Florian ; **ne jamais** les remplacer par une analyse
   du texte libre.
-- Réflexion : `REASONING_EFFORT = "low"` dans `client.py`. Elle n'entre jamais
-  dans l'historique, la trace ou un fichier commité (`test_client.py`).
+- Réflexion : `REASONING_EFFORT = "low"` dans `client.py`. Elle n'entre
+  jamais dans la trace, son résumé ou un fichier commité (`test_client.py`).
+  Par défaut, elle ne repart pas dans l'historique
+  (`KEEP_REASONING_IN_HISTORY = False`) ; l'activer est une mesure à faire,
+  pas un réglage à changer sans run.
 - `compose.yaml` : service préfixé par le projet, `TZ: Europe/Paris`, image
   figée par tag et empreinte, pas de GPU, pas de port, utilisateur réglé par
   `AGENT_UID` / `AGENT_GID`.
@@ -106,6 +109,10 @@ qui rend l'agent plus capable mais moins lisible est une régression.
   deux runs qui ne diffèrent que par `--reflexion`. Garder `low` sauf si
   `off` fait au moins aussi bien sur la réussite **et** sur
   `outil_interdit_appele` (qui doit rester à 0).
+- Mesurer `--garder-reflexion` (réflexion renvoyée au modèle dans
+  l'historique) : deux runs qui ne diffèrent que par ce paramètre, comparés
+  sur `tache_reussie`, `etapes_medianes` et `outil_interdit_appele` (qui doit
+  rester à 0). Voir le README.
 
 ---
 
@@ -347,8 +354,8 @@ Dans cet ordre, et le premier est éliminatoire :
 4. `etapes_medianes` / `etapes_max` / `jetons_par_tache` — la charge, et le
    meilleur gisement d'économies.
 5. Latence médiane et p95, et le bloc `modele` : nom exposé, modèle réel,
-   révision. Deux runs ne se comparent que si ce bloc et la `reflexion` sont
-   identiques (sauf si c'est justement le paramètre étudié).
+   révision. Deux runs ne se comparent que si ce bloc, la `reflexion` et
+   `garder_reflexion` sont identiques (sauf si c'est justement le paramètre étudié).
 
 ## Ce qu'on attend d'une session ici
 

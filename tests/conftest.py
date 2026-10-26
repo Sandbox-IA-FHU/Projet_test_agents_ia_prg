@@ -52,13 +52,19 @@ def completion(
     )
 
 
-def textTurn(text: str, reasoning: str | None = None) -> ModelTurn:
+def textTurn(
+    text: str, reasoning: str | None = None, keepReasoning: bool = False
+) -> ModelTurn:
     """Un tour sans appel d'outil : l'agent répond et s'arrête."""
-    return turnFromResponse(completion(text, reasoning=reasoning))
+    return turnFromResponse(
+        completion(text, reasoning=reasoning), keepReasoning=keepReasoning
+    )
 
 
 def toolTurn(
-    *calls: tuple[str, str, dict[str, object]], reasoning: str | None = None
+    *calls: tuple[str, str, dict[str, object]],
+    reasoning: str | None = None,
+    keepReasoning: bool = False,
 ) -> ModelTurn:
     """Un tour qui demande un ou plusieurs outils.
 
@@ -76,7 +82,8 @@ def toolTurn(
         for callId, name, arguments in calls
     ]
     return turnFromResponse(
-        completion(None, toolCalls, FINISH_TOOL_CALLS, reasoning=reasoning)
+        completion(None, toolCalls, FINISH_TOOL_CALLS, reasoning=reasoning),
+        keepReasoning=keepReasoning,
     )
 
 

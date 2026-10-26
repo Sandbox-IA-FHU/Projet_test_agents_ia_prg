@@ -5,10 +5,11 @@ Seul module qui connaît le SDK. La boucle ne manipule que le protocole
 d'agent complets, avec plusieurs tours et des appels d'outils, sans réseau et
 sans serveur.
 
-La réflexion du modèle (`reasoning_content`) n'entre jamais dans un
-`ModelTurn` : ni dans le texte, ni dans le message renvoyé au tour suivant, ni
-donc dans la trace. Elle n'est pas la réponse, et elle contient tout ce que le
-modèle a lu.
+La réflexion du modèle n'est jamais prise pour la réponse et n'atteint jamais
+la trace : elle n'est pas la réponse, et elle contient tout ce que le modèle a
+lu. Par défaut, elle ne repart pas non plus dans l'historique ; l'option
+`KEEP_REASONING_IN_HISTORY` la renvoie au tour suivant, dans le seul message
+destiné au modèle, pour mesurer si elle l'aide à garder le fil.
 """
 
 import json
@@ -39,6 +40,12 @@ REASONING_OFF = "off"
 REASONING_EFFORTS = (REASONING_OFF, "low", "medium", "xhigh")
 REASONING_EFFORT = "low"
 
+# Renvoyer au modèle, dans l'historique, la réflexion de son tour précédent
+# (champ `reasoning`, le nom que lit son modèle de conversation). Désactivé
+# par défaut : le gain reste à mesurer (scripts/evaluate.py --garder-reflexion).
+# Même activée, la réflexion n'entre jamais dans la trace ni dans un run.
+KEEP_REASONING_IN_HISTORY = False
+
 # Sans réflexion, échantillonnage recommandé pour ce modèle. Avec réflexion,
 # on garde les réglages par défaut du serveur.
 NO_REASONING_SAMPLING = {"temperature": 0.7, "top_p": 0.8}
@@ -60,7 +67,8 @@ class ModelTurn:
 
     `assistantMessage` est ajouté tel quel à l'historique du tour suivant. Il
     reprend les arguments d'outils tels que le modèle les a écrits, sans les
-    réécrire, et ne contient jamais la réflexion.
+    réécrire. Il ne contient la réflexion que si `keepReasoning` est demandé ;
+    `text`, lui, ne la contient jamais.
     """
 
     text: str
@@ -119,8 +127,23 @@ def _parseArguments(rawArguments: str, toolName: str) -> dict[str, object]:
     return arguments if isinstance(arguments, dict) else {}
 
 
-def turnFromResponse(response: ChatCompletion) -> ModelTurn:
-    """Réduit une réponse de l'API à un `ModelTurn`, sans la réflexion."""
+def _reasoningOf(message: object) -> str:
+    """Réflexion renvoyée par le serveur, quel que soit le nom de son champ."""
+    for field in ("reasoning", "reasoning_content"):
+        value = getattr(message, field, None)
+        if value:
+            return str(value)
+    return ""
+
+
+def turnFromResponse(
+    response: ChatCompletion, keepReasoning: bool = KEEP_REASONING_IN_HISTORY
+) -> ModelTurn:
+    """Réduit une réponse de l'API à un `ModelTurn`.
+
+    La réflexion n'est jamais mise dans `text`. Avec `keepReasoning`, elle est
+    ajoutée au seul message d'historique, sous le champ `reasoning`.
+    """
     choice = response.choices[0]
     message = choice.message
     finishReason = choice.finish_reason or FINISH_STOP
@@ -146,6 +169,9 @@ def turnFromResponse(response: ChatCompletion) -> ModelTurn:
     )
 
     assistantMessage: dict[str, object] = {"role": "assistant", "content": text}
+    reasoning = _reasoningOf(message) if keepReasoning else ""
+    if reasoning:
+        assistantMessage["reasoning"] = reasoning
     if rawCalls:
         assistantMessage["tool_calls"] = [
             {
@@ -212,6 +238,7 @@ class OpenAICompatibleClient:
         model: str,
         apiKey: str = "",
         reasoningEffort: str = REASONING_EFFORT,
+        keepReasoning: bool = KEEP_REASONING_IN_HISTORY,
         maxOutputTokens: int = MAX_OUTPUT_TOKENS,
         timeoutSeconds: float = REQUEST_TIMEOUT_SECONDS,
         maxRetries: int = MAX_RETRIES,
@@ -227,6 +254,7 @@ class OpenAICompatibleClient:
         self._requestOptions = buildRequestOptions(reasoningEffort)
         self.model = model
         self.reasoningEffort = reasoningEffort
+        self.keepReasoning = keepReasoning
         self.maxOutputTokens = maxOutputTokens
 
     def respond(
@@ -244,7 +272,7 @@ class OpenAICompatibleClient:
                 max_tokens=self.maxOutputTokens,
                 **self._requestOptions,
             )
-        turn = turnFromResponse(response)
+        turn = turnFromResponse(response, keepReasoning=self.keepReasoning)
 
         logger.info(
             "tour modele model=%s reflexion=%s arret=%s outils=%d "

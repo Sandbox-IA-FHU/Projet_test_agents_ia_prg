@@ -37,8 +37,9 @@ ne fait échouer que la vie réelle.
 - L'adresse et le nom du modèle viennent-ils de la configuration
   (`LLM_BASE_URL`, `LLM_MODEL`), jamais en dur ? Aucune adresse de serveur
   n'apparaît-elle dans le diff, même en exemple ?
-- La réflexion du modèle reste-t-elle hors de l'historique, des logs et des
-  traces ?
+- La réflexion du modèle reste-t-elle hors des logs, des traces et des
+  fichiers de run ? Hors de l'historique aussi, sauf `--garder-reflexion`
+  mesuré ?
 - Si `compose.yaml` a changé : `docker compose config -q` passe-t-il, le
   service reste-t-il préfixé par le projet, sans GPU ni port ?
 - Tout chiffre annoncé porte-t-il sa date et son nombre de cas ?

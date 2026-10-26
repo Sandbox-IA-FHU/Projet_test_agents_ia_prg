@@ -25,6 +25,7 @@
     "max_iterations": null,
     "max_output_tokens": null,
     "reflexion": null,
+    "garder_reflexion": null,
     "approbation": "refus"
   },
   "resultats": {
