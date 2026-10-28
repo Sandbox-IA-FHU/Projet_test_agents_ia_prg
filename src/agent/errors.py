@@ -23,3 +23,7 @@ class ModelCallError(Exception):
 
 class NoteStoreError(Exception):
     """Note introuvable ou magasin de notes illisible."""
+
+
+class DocumentFolderError(Exception):
+    """Dossier de documents Word absent ou mal configuré."""

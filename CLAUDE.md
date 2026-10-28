@@ -78,9 +78,13 @@ regroupe les informations importantes, sans en inventer ?
 **Pour qui** : les collaborateurs, pour garder une trace de leurs réunions ou
 rédiger un compte rendu simplement en parlant.
 
-**Outils** : pour l'instant, ceux du modèle (`listNotes`, `readNote`,
-`calculate`, et `deleteNote`, sensible). Les outils propres au projet restent
-à définir, en particulier la façon d'obtenir le texte de l'audio : aucune
+**Outils** : ceux du modèle (`listNotes`, `readNote`, `calculate`, et
+`deleteNote`, sensible), plus trois outils Word dans `documents.py` :
+`listDocuments`, `readDocument` et `writeDocumentCopy`, **sensible**. Ce
+dernier remplace du texte et ajoute des sections en gardant la mise en forme,
+et écrit toujours une copie dans `DOCUMENTS_SORTIE` : l'original n'est jamais
+écrit, une copie n'est jamais écrasée. Reste à définir la façon d'obtenir le
+texte de l'audio : aucune
 bibliothèque de modèle locale n'est permise, donc la transcription doit
 passer par une API fournie par le serveur. Sa disponibilité est à vérifier
 auprès de Florian, sans rien supposer. Tout outil qui envoie, publie, écrase
@@ -114,6 +118,8 @@ plus capable mais moins lisible est une régression.
 
 ## Où en est-on
 
+- 2026-10-28 — outils Word ajoutés (`documents.py`, prompt `agent_v2.md`),
+  dépendance `python-docx`, jeu d'évaluation porté à 24 cas. Aucun run.
 - 2026-10-28 — projet créé depuis le modèle : service, nom du paquet,
   en-tête et section « Le projet » renseignés. Aucun outil propre au projet.
 - 2026-10-23 — modèle branché sur le LLM local (client compatible OpenAI),
@@ -171,6 +177,7 @@ action refusée, outil en erreur — hors ligne.
 | `client.py` | Seul module qui connaît le SDK. Protocole `AgentClient`. Écarte la réflexion. |
 | `tools.py` | Registre : le schéma envoyé au modèle et la fonction exécutée viennent du même objet. |
 | `toolbox.py` | Les quatre outils d'exemple, dont l'évaluateur arithmétique sans `eval`. |
+| `documents.py` | Les trois outils Word : lister, lire, écrire une copie modifiée (sensible). |
 | `approval.py` | Politiques de validation. Défaut : refus. |
 | `loop.py` | `runAgent` — la boucle, plafonnée. |
 | `evaluation.py` | Notation et agrégation : réussite, tours, jetons, latence. |
@@ -388,13 +395,13 @@ courante sur un agent.
 **Une modification de prompt — ou de description d'outil — se mesure.** Un run
 avant, un run après, un seul paramètre changé.
 
-**Prévenir de la charge avant de lancer une évaluation.** Sur 21 cas et
-`MAX_ITERATIONS = 8`, c'est jusqu'à 168 appels au LLM partagé, pas 21.
+**Prévenir de la charge avant de lancer une évaluation.** Sur 24 cas et
+`MAX_ITERATIONS = 8`, c'est jusqu'à 192 appels au LLM partagé, pas 24.
 Proposer `--limite 3` d'abord. Sur le serveur, appliquer aussi la règle des
 horaires.
 
-**Ne pas conclure sur un écart faible.** Sur 21 cas, deux cas qui basculent
-font 10 points. Traduis toujours un écart en nombre de cas.
+**Ne pas conclure sur un écart faible.** Sur 24 cas, deux cas qui basculent
+font 8 points. Traduis toujours un écart en nombre de cas.
 
 **Ne pas ajouter de dépendance** sans raison écrite. En particulier : pas de
 framework d'agents, pas de bibliothèque d'orchestration « pour voir », pas de

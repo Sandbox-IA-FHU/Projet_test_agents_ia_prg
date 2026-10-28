@@ -32,6 +32,8 @@ class Config:
     `apiKey` peut être vide : le LLM local n'en demande pas aujourd'hui, mais
     une passerelle avec une clé par personne pourra venir sans toucher au code.
     `modelRevision` peut être vide pour un essai, jamais pour une évaluation.
+    `documentsDir` et `outputDir` sont vides ensemble (pas d'outils Word) ou
+    renseignés ensemble.
     """
 
     baseUrl: str
@@ -40,6 +42,8 @@ class Config:
     modelRevision: str
     logLevel: str
     approvalMode: str
+    documentsDir: str
+    outputDir: str
 
 
 def _requireVariable(name: str, hint: str) -> str:
@@ -80,6 +84,15 @@ def loadConfig() -> Config:
             f"{VALID_APPROVAL_MODES}."
         )
 
+    documentsDir = os.environ.get("DOCUMENTS_ENTREE", "").strip()
+    outputDir = os.environ.get("DOCUMENTS_SORTIE", "").strip()
+    if bool(documentsDir) != bool(outputDir):
+        raise ConfigError(
+            "DOCUMENTS_ENTREE et DOCUMENTS_SORTIE se renseignent ensemble : le "
+            "dossier où l'agent lit les documents Word, et un dossier distinct "
+            "où il écrit les copies. Les laisser vides désactive les outils Word."
+        )
+
     return Config(
         baseUrl=baseUrl,
         model=model,
@@ -87,4 +100,6 @@ def loadConfig() -> Config:
         modelRevision=os.environ.get("LLM_MODEL_REVISION", "").strip(),
         logLevel=logLevel,
         approvalMode=approvalMode,
+        documentsDir=documentsDir,
+        outputDir=outputDir,
     )

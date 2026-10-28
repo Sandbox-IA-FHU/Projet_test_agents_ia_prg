@@ -20,6 +20,7 @@
   },
   "prompt": null,
   "jeu": null,
+  "documents": null,
   "nb_cas": null,
   "parametres": {
     "max_iterations": null,

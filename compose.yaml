@@ -37,6 +37,8 @@ services:
       LLM_MODEL_REVISION: ${LLM_MODEL_REVISION:-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       APPROBATION: ${APPROBATION:-refus}
+      DOCUMENTS_ENTREE: ${DOCUMENTS_ENTREE:-}
+      DOCUMENTS_SORTIE: ${DOCUMENTS_SORTIE:-}
       # Aucun cache écrit dans le dépôt monté.
       RUFF_CACHE_DIR: /tmp/ruff-cache
       UV_CACHE_DIR: /tmp/uv-cache

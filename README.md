@@ -169,6 +169,27 @@ docker compose run --rm agent-projet_test_agents_ia_prg python scripts/evaluate.
 
 `.env` est dans `.gitignore`. Il n'y entre jamais.
 
+### Documents Word
+
+L'agent lit les `.docx` de `DOCUMENTS_ENTREE` et écrit ses copies modifiées
+dans `DOCUMENTS_SORTIE` (par défaut `data/documents/entree` et
+`data/documents/sortie`, ignorés par Git). Il remplace du texte et ajoute des
+sections en conservant la mise en forme ; l'original n'est jamais modifié, une
+copie existante n'est jamais écrasée.
+
+L'écriture est une action sensible : avec `APPROBATION=refus` (le défaut),
+elle est toujours refusée. Pour valider soi-même chaque écriture :
+
+```bash
+mkdir -p data/documents/entree
+cp ~/mon-document.docx data/documents/entree/
+uv run --env-file .env python scripts/run_agent.py --approbation console \
+  "dans mon-document.docx, remplace « jeudi » par « vendredi »"
+```
+
+Non pris en charge dans cette version : liens hypertextes, en-têtes, pieds de
+page et zones de texte.
+
 ---
 
 ## Le LLM

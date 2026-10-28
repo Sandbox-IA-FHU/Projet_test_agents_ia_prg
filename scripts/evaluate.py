@@ -11,7 +11,8 @@ Trois points sur lesquels ce script ne transige pas :
 - **La validation est toujours en mode refus.** Un jeu d'évaluation ne doit
   jamais pouvoir déclencher une action réelle, et un run qui attend une réponse
   humaine ne se termine pas.
-- **Chaque cas repart d'un magasin de notes neuf.** Un cas qui modifie l'état
+- **Chaque cas repart d'un magasin de notes neuf** et de documents Word
+  neufs, fabriqués dans un dossier temporaire. Un cas qui modifie l'état
   fausserait tous les suivants, et le score dépendrait de l'ordre des cas.
 - **Le modèle est consigné en entier** : nom exposé, modèle réel déclaré par
   le serveur, révision et niveau de réflexion. Le nom exposé est stable alors
@@ -22,6 +23,7 @@ import argparse
 import json
 import logging
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
 
@@ -34,7 +36,17 @@ from agent.client import (
     OpenAICompatibleClient,
 )
 from agent.config import loadConfig
-from agent.errors import ConfigError, ModelCallError, NoteStoreError
+from agent.documents import (
+    DocumentFolder,
+    buildDocumentTools,
+    createDocumentsFromSpec,
+)
+from agent.errors import (
+    ConfigError,
+    DocumentFolderError,
+    ModelCallError,
+    NoteStoreError,
+)
 from agent.evaluation import gradeCase, loadTaskSet, summarize
 from agent.loop import MAX_ITERATIONS, runAgent
 from agent.toolbox import NoteStore, buildToolbox
@@ -42,7 +54,8 @@ from agent.tools import ToolRegistry
 
 DEFAULT_NOTES = Path("evaluations/jeux/notes_demo.jsonl")
 DEFAULT_TASK_SET = Path("evaluations/jeux/taches_demo.jsonl")
-DEFAULT_PROMPT = Path("prompts/agent_v1.md")
+DEFAULT_DOCUMENTS = Path("evaluations/jeux/documents_demo.jsonl")
+DEFAULT_PROMPT = Path("prompts/agent_v2.md")
 RUNS_DIR = Path("evaluations/runs")
 
 
@@ -51,6 +64,7 @@ def buildParser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Évalue l'agent.")
     parser.add_argument("--notes", type=Path, default=DEFAULT_NOTES)
     parser.add_argument("--jeu", type=Path, default=DEFAULT_TASK_SET)
+    parser.add_argument("--documents", type=Path, default=DEFAULT_DOCUMENTS)
     parser.add_argument(
         "--etiquette", default="run", help="Suffixe du nom de fichier de run."
     )
@@ -143,18 +157,28 @@ def main() -> int:
     results = []
     for case in cases:
         # Magasin neuf pour chaque cas : aucun cas n'influence le suivant.
-        registry = ToolRegistry(buildToolbox(NoteStore.fromFile(args.notes)))
         try:
-            trace = runAgent(
-                client=client,
-                registry=registry,
-                approval=DenyAll(),
-                systemPrompt=systemPrompt,
-                task=case.task,
-                maxIterations=args.maxIterations,
-            )
+            with tempfile.TemporaryDirectory() as workDir:
+                inputDir = Path(workDir) / "entree"
+                createDocumentsFromSpec(args.documents, inputDir)
+                folder = DocumentFolder(inputDir, Path(workDir) / "sortie")
+                registry = ToolRegistry(
+                    buildToolbox(NoteStore.fromFile(args.notes))
+                    + buildDocumentTools(folder)
+                )
+                trace = runAgent(
+                    client=client,
+                    registry=registry,
+                    approval=DenyAll(),
+                    systemPrompt=systemPrompt,
+                    task=case.task,
+                    maxIterations=args.maxIterations,
+                )
         except ModelCallError as error:
             print(f"{case.caseId} : appel modèle échoué — {error}", file=sys.stderr)
+            return 1
+        except DocumentFolderError as error:
+            print(f"Documents : {error}", file=sys.stderr)
             return 1
 
         result = gradeCase(case, trace)
@@ -180,6 +204,7 @@ def main() -> int:
         },
         "prompt": f"prompts/{DEFAULT_PROMPT.name}",
         "jeu": str(args.jeu).replace("\\", "/"),
+        "documents": str(args.documents).replace("\\", "/"),
         "nb_cas": len(results),
         "parametres": {
             "max_iterations": args.maxIterations,

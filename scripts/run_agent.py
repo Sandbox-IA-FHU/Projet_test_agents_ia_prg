@@ -6,6 +6,10 @@ Par défaut, toute action sensible est **refusée** sans rien demander. Pour êt
 interrogé à la place, mettre `APPROBATION=console` dans `.env` ou passer
 `--approbation console`.
 
+Les outils Word ne sont chargés que si `DOCUMENTS_ENTREE` et `DOCUMENTS_SORTIE`
+sont renseignés dans `.env`. Les copies modifiées s'écrivent dans le dossier de
+sortie ; l'original n'est jamais touché.
+
 Ce script affiche un résumé de trace : noms d'outils, compteurs, jetons,
 latence. Jamais le contenu des notes lues ni la réflexion du modèle — une
 trace complète contient le contenu métier, intégralement.
@@ -19,14 +23,20 @@ from pathlib import Path
 from agent.approval import ConsoleApproval, DenyAll
 from agent.client import REASONING_EFFORT, OpenAICompatibleClient
 from agent.config import APPROVAL_CONSOLE, VALID_APPROVAL_MODES, loadConfig
-from agent.errors import ConfigError, ModelCallError, NoteStoreError
+from agent.documents import DocumentFolder, buildDocumentTools
+from agent.errors import (
+    ConfigError,
+    DocumentFolderError,
+    ModelCallError,
+    NoteStoreError,
+)
 from agent.loop import MAX_ITERATIONS, runAgent, summarizeTrace
 from agent.models import STOP_ITERATION_LIMIT
 from agent.toolbox import NoteStore, buildToolbox
 from agent.tools import ToolRegistry
 
 DEFAULT_NOTES = Path("evaluations/jeux/notes_demo.jsonl")
-DEFAULT_PROMPT = Path("prompts/agent_v1.md")
+DEFAULT_PROMPT = Path("prompts/agent_v2.md")
 
 
 def buildParser() -> argparse.ArgumentParser:
@@ -70,7 +80,16 @@ def main() -> int:
         print(f"Notes : {error}", file=sys.stderr)
         return 1
 
-    registry = ToolRegistry(buildToolbox(store))
+    tools = buildToolbox(store)
+    if config.documentsDir:
+        try:
+            folder = DocumentFolder(Path(config.documentsDir), Path(config.outputDir))
+        except DocumentFolderError as error:
+            print(f"Documents : {error}", file=sys.stderr)
+            return 1
+        tools += buildDocumentTools(folder)
+
+    registry = ToolRegistry(tools)
     mode = args.approbation or config.approvalMode
     approval = ConsoleApproval() if mode == APPROVAL_CONSOLE else DenyAll()
 
