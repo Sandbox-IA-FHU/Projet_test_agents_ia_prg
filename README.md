@@ -1,22 +1,18 @@
-# agentic-model — dépôt modèle pour un agent à outils
+# Projet_test_agents_ia_prg — de l'audio à une synthèse écrite
 
-> **Statut** : actif
-> **Mise à jour** : 2026-10-23
-> **Question posée** : quelle structure minimale permet de démarrer un agent à
-> outils sur le LLM local, importable tel quel en production, avec dès le
-> premier commit un plafond d'itérations, une validation des actions
-> irréversibles et une mesure ?
-> **Verdict** : en service. Florian crée chaque projet depuis ce modèle. Branché
-> sur le LLM local (API compatible OpenAI) depuis le 2026-10-23 ; aucun run
-> d'évaluation de référence n'existe encore sur ce modèle.
+> **Statut** : démarrage
+> **Mise à jour** : 2026-10-28
+> **Question posée** : un agent à outils sur le LLM local peut-il transformer
+> un enregistrement audio (réunion, compte rendu dicté) en une synthèse écrite
+> qui regroupe les informations importantes, sans en inventer ?
+> **Verdict** : à établir. Projet créé depuis le modèle d'agent à outils le
+> 2026-10-28 ; aucun outil propre au projet, aucun run d'évaluation de
+> référence.
 
-Ce dépôt est un **modèle**, pas un projet. Il contient une boucle d'agent
-complète, minuscule et fonctionnelle. Son intérêt n'est pas le code : c'est ce
-que le code rend impossible.
-
-Le premier commit d'un projet dérivé **remplace cet en-tête par le sien** — sa
-question, son statut, sa date. Un dépôt qui garde l'en-tête du modèle ment sur
-ce qu'il est.
+Agent destiné aux collaborateurs : synthèse d'une réunion enregistrée, ou
+compte rendu rédigé simplement en parlant. Il est construit sur le modèle
+d'agent à outils de l'organisation, dont il garde la boucle plafonnée, la
+validation des actions irréversibles et la mesure.
 
 > **Ce dépôt est public, et les projets qui en naissent aussi.** Tout ce qui y
 > entre est lisible par n'importe qui et le reste pour toujours, historique
@@ -133,9 +129,9 @@ utilisez votre propre Docker **rootless**, sans GPU — l'agent n'en a pas
 besoin, il appelle le LLM par son API.
 
 ```bash
-docker compose run --rm agent-modele pytest
-docker compose run --rm agent-modele ruff check .
-docker compose run --rm agent-modele ruff format --check .
+docker compose run --rm agent-projet_test_agents_ia_prg pytest
+docker compose run --rm agent-projet_test_agents_ia_prg ruff check .
+docker compose run --rm agent-projet_test_agents_ia_prg ruff format --check .
 ```
 
 La première commande construit l'image. Le dépôt est monté dans le
@@ -143,8 +139,8 @@ conteneur : une modification de code est prise en compte sans reconstruire.
 Après un changement de dépendances :
 
 ```bash
-docker compose run --rm agent-modele uv add <paquet>
-docker compose build agent-modele
+docker compose run --rm agent-projet_test_agents_ia_prg uv add <paquet>
+docker compose build agent-projet_test_agents_ia_prg
 ```
 
 Dans les deux cas, les tests passent **sans serveur et sans réseau** : ils
@@ -167,8 +163,8 @@ uv run --env-file .env python scripts/evaluate.py --limite 3
 ou en conteneur, qui lit `.env` tout seul :
 
 ```bash
-docker compose run --rm agent-modele python scripts/run_agent.py "quel est le tarif d'astreinte de nuit ?"
-docker compose run --rm agent-modele python scripts/evaluate.py --limite 3
+docker compose run --rm agent-projet_test_agents_ia_prg python scripts/run_agent.py "quel est le tarif d'astreinte de nuit ?"
+docker compose run --rm agent-projet_test_agents_ia_prg python scripts/evaluate.py --limite 3
 ```
 
 `.env` est dans `.gitignore`. Il n'y entre jamais.

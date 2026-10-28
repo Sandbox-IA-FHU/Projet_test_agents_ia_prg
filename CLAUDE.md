@@ -71,11 +71,28 @@ horaire inhabituel : demander avant de supposer que le serveur est allumé.
 
 ## Le projet
 
-À remplir au premier commit d'un projet dérivé : la question posée, pour qui,
-les outils de l'agent et lesquels sont sensibles. Ici, c'est un **modèle**
-d'agent à outils. Le code est volontairement minuscule : ce qu'il transmet,
-c'est une méthode et trois garde-fous, pas une bibliothèque. Une modification
-qui rend l'agent plus capable mais moins lisible est une régression.
+**Question posée** : un agent à outils sur le LLM local peut-il transformer un
+enregistrement audio (réunion, compte rendu dicté) en une synthèse écrite qui
+regroupe les informations importantes, sans en inventer ?
+
+**Pour qui** : les collaborateurs, pour garder une trace de leurs réunions ou
+rédiger un compte rendu simplement en parlant.
+
+**Outils** : pour l'instant, ceux du modèle (`listNotes`, `readNote`,
+`calculate`, et `deleteNote`, sensible). Les outils propres au projet restent
+à définir, en particulier la façon d'obtenir le texte de l'audio : aucune
+bibliothèque de modèle locale n'est permise, donc la transcription doit
+passer par une API fournie par le serveur. Sa disponibilité est à vérifier
+auprès de Florian, sans rien supposer. Tout outil qui envoie, publie, écrase
+ou supprime une synthèse sera `isSensitive=True`.
+
+**Données** : un enregistrement de réunion est par nature une donnée réelle
+(voix, noms, contenu interne). Aucun audio, aucune transcription, aucune
+synthèse réelle n'entre dans le dépôt : le jeu d'évaluation utilise des
+contenus fictifs.
+
+Le code reste volontairement minuscule : une modification qui rend l'agent
+plus capable mais moins lisible est une régression.
 
 ## Contraintes techniques
 
@@ -97,6 +114,8 @@ qui rend l'agent plus capable mais moins lisible est une régression.
 
 ## Où en est-on
 
+- 2026-10-28 — projet créé depuis le modèle : service, nom du paquet,
+  en-tête et section « Le projet » renseignés. Aucun outil propre au projet.
 - 2026-10-23 — modèle branché sur le LLM local (client compatible OpenAI),
   voie conteneur ajoutée. Réflexion `low` par défaut (décidé le 22/10 sur
   comparatif). Aucun run de référence sur ce modèle.
@@ -132,9 +151,9 @@ uv run --env-file .env python scripts/evaluate.py --limite 3
 Sur le serveur (rootless) ou après import :
 
 ```bash
-docker compose run --rm agent-modele pytest
-docker compose run --rm agent-modele ruff check .
-docker compose run --rm agent-modele python scripts/evaluate.py --limite 3
+docker compose run --rm agent-projet_test_agents_ia_prg pytest
+docker compose run --rm agent-projet_test_agents_ia_prg ruff check .
+docker compose run --rm agent-projet_test_agents_ia_prg python scripts/evaluate.py --limite 3
 ```
 
 Aucun test n'appelle le LLM. Les scénarios d'agent sont rejoués par

@@ -1,22 +1,22 @@
 # Services de l'agent.
 #
-# À LA CRÉATION DU PROJET : remplacer « agent-modele » par agent-<nom-du-projet>
-# dans ce fichier et dans le README. À l'import en production, ce fichier est
-# fusionné avec ceux des autres apps : un nom générique entrerait en collision.
+# Le nom du service est préfixé par le projet : à l'import en production, ce
+# fichier est fusionné avec ceux des autres apps, un nom générique entrerait en
+# collision.
 #
 # Aucun service ne reste lancé : l'agent, les tests et le lint tournent à la
 # demande, puis le conteneur disparaît (d'où l'absence de restart). Le profil
 # empêche qu'un « docker compose up -d » global le démarre.
-#   docker compose run --rm agent-modele pytest
-#   docker compose run --rm agent-modele ruff check .
-#   docker compose run --rm agent-modele ruff format --check .
-#   docker compose run --rm agent-modele python scripts/run_agent.py "une tâche"
-#   docker compose run --rm agent-modele python scripts/evaluate.py --limite 3
+#   docker compose run --rm agent-projet_test_agents_ia_prg pytest
+#   docker compose run --rm agent-projet_test_agents_ia_prg ruff check .
+#   docker compose run --rm agent-projet_test_agents_ia_prg ruff format --check .
+#   docker compose run --rm agent-projet_test_agents_ia_prg python scripts/run_agent.py "une tâche"
+#   docker compose run --rm agent-projet_test_agents_ia_prg python scripts/evaluate.py --limite 3
 #
 # Pas de GPU, pas de port exposé : l'agent appelle le LLM par son API.
 
 services:
-  agent-modele:
+  agent-projet_test_agents_ia_prg:
     build: .
     profiles: [agent]
     # Utilisateur du conteneur, qui écrit dans le dépôt monté (fichiers de run,
