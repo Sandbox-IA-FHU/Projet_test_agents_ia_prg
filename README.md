@@ -1,16 +1,18 @@
-# Projet_test_agents_ia_prg — de l'audio à une synthèse écrite
+# Projet_test_agents_ia_prg — modifier un document Word en langage courant
 
 > **Statut** : démarrage
 > **Mise à jour** : 2026-10-28
-> **Question posée** : un agent à outils sur le LLM local peut-il transformer
-> un enregistrement audio (réunion, compte rendu dicté) en une synthèse écrite
-> qui regroupe les informations importantes, sans en inventer ?
-> **Verdict** : à établir. Projet créé depuis le modèle d'agent à outils le
-> 2026-10-28 ; aucun outil propre au projet, aucun run d'évaluation de
-> référence.
+> **Question posée** : un agent à outils sur le LLM local peut-il lire un
+> document Word, le modifier à la demande (remplacer du texte, ajouter des
+> sections) en conservant sa mise en forme, et en rendre une copie, sans
+> jamais toucher à l'original ni écrire sans accord humain ?
+> **Verdict** : à établir. Première version des outils Word le 2026-10-28 ;
+> aucun run d'évaluation de référence.
 
-Agent destiné aux collaborateurs : synthèse d'une réunion enregistrée, ou
-compte rendu rédigé simplement en parlant. Il est construit sur le modèle
+Agent destiné aux collaborateurs : on lui donne un document Word et une
+consigne en langage courant, il rend une copie modifiée. L'objectif initial,
+une synthèse écrite d'enregistrements audio, a été abandonné le 2026-10-28 au
+profit de celui-ci. L'agent est construit sur le modèle
 d'agent à outils de l'organisation, dont il garde la boucle plafonnée, la
 validation des actions irréversibles et la mesure.
 

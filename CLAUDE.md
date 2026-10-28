@@ -71,29 +71,28 @@ horaire inhabituel : demander avant de supposer que le serveur est allumé.
 
 ## Le projet
 
-**Question posée** : un agent à outils sur le LLM local peut-il transformer un
-enregistrement audio (réunion, compte rendu dicté) en une synthèse écrite qui
-regroupe les informations importantes, sans en inventer ?
+**Question posée** : un agent à outils sur le LLM local peut-il lire un
+document Word, le modifier à la demande (remplacer du texte, ajouter des
+sections) en conservant sa mise en forme, et en rendre une copie, sans jamais
+toucher à l'original ni écrire sans accord humain ?
 
-**Pour qui** : les collaborateurs, pour garder une trace de leurs réunions ou
-rédiger un compte rendu simplement en parlant.
+**Pour qui** : les collaborateurs, pour faire modifier un document Word en
+langage courant au lieu de le retoucher à la main.
 
 **Outils** : ceux du modèle (`listNotes`, `readNote`, `calculate`, et
 `deleteNote`, sensible), plus trois outils Word dans `documents.py` :
 `listDocuments`, `readDocument` et `writeDocumentCopy`, **sensible**. Ce
 dernier remplace du texte et ajoute des sections en gardant la mise en forme,
 et écrit toujours une copie dans `DOCUMENTS_SORTIE` : l'original n'est jamais
-écrit, une copie n'est jamais écrasée. Reste à définir la façon d'obtenir le
-texte de l'audio : aucune
-bibliothèque de modèle locale n'est permise, donc la transcription doit
-passer par une API fournie par le serveur. Sa disponibilité est à vérifier
-auprès de Florian, sans rien supposer. Tout outil qui envoie, publie, écrase
-ou supprime une synthèse sera `isSensitive=True`.
+écrit, une copie n'est jamais écrasée. Les outils de notes viennent du modèle
+et restent pour l'instant ; les retirer est une décision à part, qui change le
+jeu d'évaluation. Tout futur outil qui envoie, publie, écrase ou supprime un
+document sera `isSensitive=True`.
 
-**Données** : un enregistrement de réunion est par nature une donnée réelle
-(voix, noms, contenu interne). Aucun audio, aucune transcription, aucune
-synthèse réelle n'entre dans le dépôt : le jeu d'évaluation utilise des
-contenus fictifs.
+**Données** : un document de travail est par nature une donnée réelle. Aucun
+`.docx` réel n'entre dans le dépôt (`*.docx` est dans `.gitignore`, les
+documents vivent dans `data/`) : le jeu d'évaluation utilise des documents
+fictifs, décrits en texte dans `evaluations/jeux/documents_demo.jsonl`.
 
 Le code reste volontairement minuscule : une modification qui rend l'agent
 plus capable mais moins lisible est une régression.
@@ -118,6 +117,8 @@ plus capable mais moins lisible est une régression.
 
 ## Où en est-on
 
+- 2026-10-28 — objectif changé : la modification de documents Word remplace
+  la synthèse audio, abandonnée.
 - 2026-10-28 — outils Word ajoutés (`documents.py`, prompt `agent_v2.md`),
   dépendance `python-docx`, jeu d'évaluation porté à 24 cas. Aucun run.
 - 2026-10-28 — projet créé depuis le modèle : service, nom du paquet,

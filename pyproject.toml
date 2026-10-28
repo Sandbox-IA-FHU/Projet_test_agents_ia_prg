@@ -1,7 +1,7 @@
 [project]
 name = "projet-test-agents-ia-prg"
 version = "0.1.0"
-description = "Agent qui transforme un enregistrement audio en synthèse écrite"
+description = "Agent qui lit et modifie des documents Word, en rendant une copie"
 requires-python = ">=3.13"
 dependencies = [
     "openai>=3.37,<4",
