@@ -189,6 +189,17 @@ uv run --env-file .env python scripts/run_agent.py --approbation console \
   "dans mon-document.docx, remplace « jeudi » par « vendredi »"
 ```
 
+Pour essayer sans document à soi, `--documents-demo` dépose d'abord dans
+`DOCUMENTS_ENTREE` les documents fictifs de
+`evaluations/jeux/documents_demo.jsonl` (un fichier existant n'est jamais
+écrasé) :
+
+```bash
+docker compose run --rm agent-projet_test_agents_ia_prg python scripts/run_agent.py \
+  --documents-demo --approbation console \
+  "dans compte-rendu-reunion.docx, remplace « jeudi » par « vendredi »"
+```
+
 Non pris en charge dans cette version : liens hypertextes, en-têtes, pieds de
 page et zones de texte.
 

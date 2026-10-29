@@ -117,6 +117,10 @@ plus capable mais moins lisible est une régression.
 
 ## Où en est-on
 
+- 2026-10-29 — option `--documents-demo` dans `run_agent.py`. Premier essai
+  réel, une seule tâche sur `compte-rendu-reunion.docx` (un remplacement, une
+  section ajoutée) : copie correcte, original intact, 3 tours, 7075 jetons
+  d'entrée. Un essai n'est pas un run d'évaluation.
 - 2026-10-28 — objectif changé : la modification de documents Word remplace
   la synthèse audio, abandonnée.
 - 2026-10-28 — outils Word ajoutés (`documents.py`, prompt `agent_v2.md`),

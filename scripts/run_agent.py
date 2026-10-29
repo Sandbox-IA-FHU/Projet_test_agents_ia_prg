@@ -8,7 +8,9 @@ interrogé à la place, mettre `APPROBATION=console` dans `.env` ou passer
 
 Les outils Word ne sont chargés que si `DOCUMENTS_ENTREE` et `DOCUMENTS_SORTIE`
 sont renseignés dans `.env`. Les copies modifiées s'écrivent dans le dossier de
-sortie ; l'original n'est jamais touché.
+sortie ; l'original n'est jamais touché. `--documents-demo` dépose d'abord dans
+le dossier d'entrée les documents fictifs du jeu d'évaluation, sans écraser un
+fichier existant.
 
 Ce script affiche un résumé de trace : noms d'outils, compteurs, jetons,
 latence. Jamais le contenu des notes lues ni la réflexion du modèle — une
@@ -23,7 +25,11 @@ from pathlib import Path
 from agent.approval import ConsoleApproval, DenyAll
 from agent.client import REASONING_EFFORT, OpenAICompatibleClient
 from agent.config import APPROVAL_CONSOLE, VALID_APPROVAL_MODES, loadConfig
-from agent.documents import DocumentFolder, buildDocumentTools
+from agent.documents import (
+    DocumentFolder,
+    buildDocumentTools,
+    createDocumentsFromSpec,
+)
 from agent.errors import (
     ConfigError,
     DocumentFolderError,
@@ -37,6 +43,7 @@ from agent.tools import ToolRegistry
 
 DEFAULT_NOTES = Path("evaluations/jeux/notes_demo.jsonl")
 DEFAULT_PROMPT = Path("prompts/agent_v2.md")
+DEMO_DOCUMENTS = Path("evaluations/jeux/documents_demo.jsonl")
 
 
 def buildParser() -> argparse.ArgumentParser:
@@ -58,6 +65,12 @@ def buildParser() -> argparse.ArgumentParser:
         default=MAX_ITERATIONS,
         dest="maxIterations",
         help=f"Plafond d'itérations (défaut : {MAX_ITERATIONS}).",
+    )
+    parser.add_argument(
+        "--documents-demo",
+        action="store_true",
+        dest="documentsDemo",
+        help="Dépose les documents fictifs du jeu d'évaluation dans DOCUMENTS_ENTREE.",
     )
     return parser
 
@@ -81,8 +94,13 @@ def main() -> int:
         return 1
 
     tools = buildToolbox(store)
+    if args.documentsDemo and not config.documentsDir:
+        print("Documents : DOCUMENTS_ENTREE n'est pas renseigné.", file=sys.stderr)
+        return 1
     if config.documentsDir:
         try:
+            if args.documentsDemo:
+                createDocumentsFromSpec(DEMO_DOCUMENTS, Path(config.documentsDir))
             folder = DocumentFolder(Path(config.documentsDir), Path(config.outputDir))
         except DocumentFolderError as error:
             print(f"Documents : {error}", file=sys.stderr)

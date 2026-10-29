@@ -252,7 +252,8 @@ def createDocumentsFromSpec(specPath: Path, directory: Path) -> None:
 
     Sert au jeu d'évaluation : les documents de démonstration vivent dans le
     dépôt sous forme de texte relisible, pas de fichiers binaires.
-    Chaque paragraphe est `{"style": ..., "texte": ...}`.
+    Chaque paragraphe est `{"style": ..., "texte": ...}`. Un document qui
+    existe déjà n'est jamais écrasé : il peut être un vrai document.
     """
     directory.mkdir(parents=True, exist_ok=True)
     with specPath.open(encoding="utf-8") as handle:
@@ -265,10 +266,13 @@ def createDocumentsFromSpec(specPath: Path, directory: Path) -> None:
                 raise DocumentFolderError(
                     f"{specPath.name} ligne {lineNumber} : JSON invalide."
                 ) from error
+            path = directory / record["nom"]
+            if path.exists():
+                continue
             document = docx.Document()
             for paragraph in record["paragraphes"]:
                 document.add_paragraph(paragraph["texte"], style=paragraph["style"])
-            document.save(str(directory / record["nom"]))
+            document.save(str(path))
 
 
 def buildDocumentTools(folder: DocumentFolder) -> list[ToolSpec]:

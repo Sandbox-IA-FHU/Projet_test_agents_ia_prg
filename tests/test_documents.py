@@ -250,3 +250,13 @@ def test_demoDocumentsAreBuilt(tmp_path: Path) -> None:
         "compte-rendu-reunion.docx",
         "consignes-diffusion.docx",
     ]
+
+
+def test_demoDocumentsNeverOverwriteAnExistingFile(tmp_path: Path) -> None:
+    existing = tmp_path / "compte-rendu-reunion.docx"
+    existing.write_bytes(b"un vrai document")
+
+    createDocumentsFromSpec(DEMO_DOCUMENTS, tmp_path)
+
+    assert existing.read_bytes() == b"un vrai document"
+    assert (tmp_path / "consignes-diffusion.docx").is_file()
