@@ -4,7 +4,10 @@ Petit module, tests courts, mais c'est le seul endroit qui décide si une action
 irréversible a lieu.
 """
 
-from agent.approval import AllowAll, ConsoleApproval, DenyAll
+import threading
+import time
+
+from agent.approval import AllowAll, ConsoleApproval, DenyAll, PendingApproval
 from agent.models import ToolCall
 
 CALL = ToolCall(callId="c1", toolName="deleteNote", arguments={"nom": "a"})
@@ -43,3 +46,38 @@ def test_consoleShowsToolAndArguments() -> None:
 
     assert "deleteNote" in seen[0]
     assert "nom" in seen[0]
+
+
+def decideWhenPending(approval: PendingApproval, approved: bool) -> threading.Thread:
+    """Joue la personne devant la page web : attend la demande, puis décide."""
+
+    def click() -> None:
+        while approval.pendingCall is None:
+            time.sleep(0.01)
+        approval.decide(approved)
+
+    thread = threading.Thread(target=click)
+    thread.start()
+    return thread
+
+
+def test_pendingApprovalWaitsForTheDecision() -> None:
+    for approved in (True, False):
+        approval = PendingApproval(timeoutSeconds=5)
+        clicker = decideWhenPending(approval, approved)
+        assert approval.approve(CALL) is approved
+        clicker.join()
+        assert approval.pendingCall is None
+
+
+def test_pendingApprovalRefusesAfterTimeout() -> None:
+    # Page fermée, personne ne répond : le silence ne vaut pas accord.
+    assert PendingApproval(timeoutSeconds=0.05).approve(CALL) is False
+
+
+def test_lateDecisionIsIgnored() -> None:
+    # Un clic « Valider » arrivé hors attente ne doit pas valider la demande
+    # suivante.
+    approval = PendingApproval(timeoutSeconds=0.05)
+    approval.decide(True)
+    assert approval.approve(CALL) is False
