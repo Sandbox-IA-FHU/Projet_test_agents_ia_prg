@@ -15,6 +15,15 @@ Trois propriétés ne se négocient pas :
    réponse.
 3. **Un outil sensible passe par la validation.** Toujours, quel que soit ce
    que le modèle a écrit pour justifier son appel.
+
+Le principe, en une phrase : le modèle ne fait rien lui-même, il **demande**
+des appels d'outils ; la boucle les exécute, lui renvoie les résultats, et
+recommence jusqu'à ce qu'il réponde sans rien demander. Exemple réel, pour
+« remplace jeudi par vendredi dans compte-rendu-reunion.docx » :
+
+    tour 1  modèle → demande readDocument          boucle → rend le texte
+    tour 2  modèle → demande writeDocumentCopy     boucle → validation, copie
+    tour 3  modèle → répond en texte, sans outil   boucle → s'arrête
 """
 
 import json
@@ -60,22 +69,30 @@ def executeCall(
     qui ne se rattrape pas est le refus de validation, et il est signalé comme
     tel pour que l'évaluation puisse le compter.
     """
+    # 1. Le modèle a pu inventer un nom d'outil : on le lui dit, avec la liste
+    #    des outils existants, pour qu'il se corrige au tour suivant.
     try:
         spec = registry.get(call.toolName)
     except UnknownToolError as error:
         return ToolOutcome(call=call, content=str(error), isError=True)
 
+    # 2. Outil sensible (écriture, suppression) : un humain décide. S'il
+    #    refuse, la fonction de l'outil n'est jamais appelée.
     if spec.isSensitive and not approval.approve(call):
         logger.warning("appel refuse par la validation : %s", call.toolName)
         return ToolOutcome(
             call=call, content=REFUSAL_MESSAGE, isError=True, wasRefused=True
         )
 
+    # 3. Exécution. Une erreur prévue (document introuvable, texte absent…)
+    #    devient un message pour le modèle, pas un plantage.
     try:
         result = spec.handler(call.arguments)
     except ToolError as error:
         return ToolOutcome(call=call, content=f"Erreur : {error}", isError=True)
 
+    # 4. Le résultat est tronqué : il repart vers le modèle à chaque tour
+    #    suivant, un résultat trop long alourdirait tous les tours.
     return ToolOutcome(call=call, content=str(result)[:MAX_RESULT_LENGTH])
 
 
@@ -110,19 +127,26 @@ def runAgent(
 ) -> Trace:
     """Fait tourner l'agent sur une tâche et rend la trace complète."""
     startedAt = time.monotonic()
+    # L'historique de la conversation. L'API ne garde rien d'un appel à
+    # l'autre : on lui renvoie tout, à chaque tour, et il ne fait que grandir.
     messages: list[dict[str, object]] = [{"role": "user", "content": task}]
+    # Description des outils (nom, rôle, arguments), envoyée à chaque tour.
     schemas = registry.schemas()
 
     steps: list[Step] = []
     totalUsage = EMPTY_USAGE
     finalText = ""
+    # Supposé atteint tant que le modèle n'a pas terminé de lui-même.
     stoppedReason = STOP_ITERATION_LIMIT
 
     for index in range(1, maxIterations + 1):
+        # Un tour = un appel au LLM : il répond par du texte, des demandes
+        # d'appels d'outils, ou les deux.
         turn = client.respond(system=systemPrompt, messages=messages, tools=schemas)
         totalUsage = totalUsage.plus(turn.usage)
         finalText = turn.text or finalText
 
+        # Aucun outil demandé : le modèle a fini, son texte est la réponse.
         if not turn.toolCalls:
             steps.append(
                 Step(
@@ -135,6 +159,7 @@ def runAgent(
             stoppedReason = STOP_COMPLETED
             break
 
+        # Sinon, on exécute tous les appels demandés dans ce tour.
         outcomes = tuple(
             executeCall(call, registry, approval) for call in turn.toolCalls
         )
@@ -147,6 +172,8 @@ def runAgent(
             )
         )
 
+        # On ajoute à l'historique la demande du modèle puis les résultats :
+        # au tour suivant, il les lit et décide de la suite.
         messages.append(turn.assistantMessage)
         messages.extend(buildToolMessages(outcomes))
     else:

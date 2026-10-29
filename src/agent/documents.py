@@ -168,10 +168,14 @@ def replaceText(paragraph: Paragraph, old: str, new: str) -> int:
     est retirée des runs suivants. Rend le nombre de remplacements.
     """
     count = 0
+    # On cherche dans le texte recollé de tous les runs : c'est ce qui trouve
+    # « jeudi » même quand Word l'a stocké en « jeu » + « di ».
     start = _runsText(paragraph).find(old)
     while start != -1:
         _replaceSpan(paragraph, start, start + len(old), new)
         count += 1
+        # La recherche reprend après le texte inséré : si `new` contient
+        # `old` (« jeudi » → « jeudi matin »), on ne le remplace pas en boucle.
         start = _runsText(paragraph).find(old, start + len(new))
     return count
 
@@ -182,15 +186,24 @@ def _runsText(paragraph: Paragraph) -> str:
 
 
 def _replaceSpan(paragraph: Paragraph, start: int, end: int, new: str) -> None:
-    """Remplace les caractères [start, end[ du paragraphe par `new`."""
+    """Remplace les caractères [start, end[ du paragraphe par `new`.
+
+    Exemple : runs « Réunion le jeu » (gras) + « di à 10 h. », remplacer
+    « jeudi » par « vendredi » donne « Réunion le vendredi » (gras) + « à 10 h. ».
+    """
+    # `position` suit, run après run, où l'on en est dans le texte recollé.
     position = 0
     inserted = False
     for run in paragraph.runs:
         text = run.text
         runStart, runEnd = position, position + len(text)
         position = runEnd
+        # Run entièrement avant ou après la zone à remplacer : on n'y touche pas.
         if runEnd <= start or runStart >= end:
             continue
+        # On garde ce qui, dans ce run, est hors de la zone ; le nouveau texte
+        # n'est posé que dans le premier run touché, et prend donc sa mise en
+        # forme. Les runs suivants perdent seulement leur part de l'ancien texte.
         before = text[: max(start - runStart, 0)]
         after = text[end - runStart :] if end < runEnd else ""
         run.text = before + ("" if inserted else new) + after
@@ -276,7 +289,17 @@ def createDocumentsFromSpec(specPath: Path, directory: Path) -> None:
 
 
 def buildDocumentTools(folder: DocumentFolder) -> list[ToolSpec]:
-    """Construit les trois outils Word autour d'un dossier de documents."""
+    """Construit les trois outils Word autour d'un dossier de documents.
+
+    Chaque outil est une paire : une fonction `handle…` qui fait le travail,
+    et un `ToolSpec` (en bas) qui la décrit au modèle. Le modèle ne voit que
+    le `ToolSpec` ; quand il demande l'outil, la boucle appelle la fonction
+    avec les arguments qu'il a choisis, sous forme de dictionnaire.
+    """
+
+    # Les fonctions sont définies ici, à l'intérieur, pour avoir accès à
+    # `folder` sans le passer en argument : le modèle ne choisit jamais le
+    # dossier, seulement un nom de fichier dedans.
 
     def handleListDocuments(arguments: dict[str, object]) -> str:
         """Liste les documents disponibles."""
@@ -292,7 +315,12 @@ def buildDocumentTools(folder: DocumentFolder) -> list[ToolSpec]:
         return describeDocument(folder.open(name), startIndex)
 
     def handleWriteDocumentCopy(arguments: dict[str, object]) -> str:
-        """Applique les modifications et écrit la copie. Action sensible."""
+        """Applique les modifications et écrit la copie. Action sensible.
+
+        Quand cette fonction s'exécute, la validation humaine a déjà eu lieu
+        (dans `loop.executeCall`). Les arguments viennent du modèle : on
+        vérifie leur forme avant de s'en servir.
+        """
         name = str(arguments.get("nom", ""))
         copyName = str(arguments.get("nomCopie", ""))
         replacements = arguments.get("remplacements") or []
@@ -307,6 +335,9 @@ def buildDocumentTools(folder: DocumentFolder) -> list[ToolSpec]:
         if not replacements and not sections:
             raise ToolError("Aucune modification demandée : rien à écrire.")
 
+        # Le document est chargé en mémoire : toutes les modifications qui
+        # suivent portent sur cette version en mémoire, jamais sur le fichier
+        # d'origine. Seul `folder.save`, à la fin, écrit sur le disque.
         document = folder.open(name)
         report = []
         # Tout est vérifié avant d'écrire : un remplacement introuvable
@@ -345,8 +376,13 @@ def buildDocumentTools(folder: DocumentFolder) -> list[ToolSpec]:
             report.append(f"section {section.get('titre', '')!r} ajoutée")
 
         path = folder.save(document, copyName)
+        # Ce texte est le résultat d'outil que lira le modèle au tour suivant.
         return f"Copie écrite : {path.name}. " + " ; ".join(report) + "."
 
+    # Schémas JSON des arguments : ils disent au modèle quelle forme doivent
+    # avoir les arguments qu'il envoie. Les descriptions qu'ils contiennent
+    # partent au modèle à chaque tour, comme le prompt : les modifier oblige
+    # à refaire un run d'évaluation.
     replacementSchema = {
         "type": "object",
         "properties": {
@@ -440,6 +476,8 @@ def buildDocumentTools(folder: DocumentFolder) -> list[ToolSpec]:
                 "required": ["nom", "nomCopie"],
             },
             handler=handleWriteDocumentCopy,
+            # C'est cette ligne, et non la description, qui impose la
+            # validation humaine avant toute écriture.
             isSensitive=True,
         ),
     ]

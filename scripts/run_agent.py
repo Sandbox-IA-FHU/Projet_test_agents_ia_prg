@@ -79,6 +79,8 @@ def main() -> int:
     """Point d'entrée. Rend 0 en succès, 1 sur une erreur attendue."""
     args = buildParser().parse_args()
 
+    # 1. Configuration : adresse du LLM, dossiers, politique de validation,
+    #    lus dans les variables d'environnement (le fichier .env).
     try:
         config = loadConfig()
     except ConfigError as error:
@@ -93,6 +95,9 @@ def main() -> int:
         print(f"Notes : {error}", file=sys.stderr)
         return 1
 
+    # 2. Les outils mis à disposition du modèle : ceux de notes, puis les
+    #    outils Word si les dossiers sont configurés. L'agent ne peut rien
+    #    faire d'autre que ce que cette liste permet.
     tools = buildToolbox(store)
     if args.documentsDemo and not config.documentsDir:
         print("Documents : DOCUMENTS_ENTREE n'est pas renseigné.", file=sys.stderr)
@@ -108,6 +113,8 @@ def main() -> int:
         tools += buildDocumentTools(folder)
 
     registry = ToolRegistry(tools)
+    # 3. Qui valide les actions sensibles : personne (refus systématique, le
+    #    défaut) ou la personne devant le terminal.
     mode = args.approbation or config.approvalMode
     approval = ConsoleApproval() if mode == APPROVAL_CONSOLE else DenyAll()
 
@@ -119,6 +126,8 @@ def main() -> int:
     print(f"Sensibles : {registry.sensitiveNames()} — validation : {mode}")
     print()
 
+    # 4. La boucle d'agent (loop.py) : elle appelle le LLM, exécute les
+    #    outils demandés, et rend une trace de tout ce qui s'est passé.
     try:
         trace = runAgent(
             client=OpenAICompatibleClient(
@@ -134,6 +143,8 @@ def main() -> int:
         print(f"Appel modèle : {error}", file=sys.stderr)
         return 1
 
+    # 5. La réponse du modèle, puis un résumé sans contenu (noms d'outils,
+    #    compteurs) : la trace complète contient tout ce que l'agent a lu.
     print(trace.finalText)
     print()
     print(summarizeTrace(trace))
