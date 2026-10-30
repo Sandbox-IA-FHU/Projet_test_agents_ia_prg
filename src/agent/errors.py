@@ -27,7 +27,3 @@ class NoteStoreError(Exception):
 
 class DocumentFolderError(Exception):
     """Dossier de documents Word absent ou mal configuré."""
-
-
-class UploadError(Exception):
-    """Dépôt de document refusé par l'interface web (format, taille, nom)."""
