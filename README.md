@@ -219,8 +219,17 @@ docker compose run --rm -p 127.0.0.1:8080:8080 \
 ```
 
 Puis ouvrir `http://127.0.0.1:8080` ; depuis VS Code connecté au serveur, le
-port est redirigé (onglet *Ports*). `compose.yaml` ne publie toujours aucun
-port. Les documents déposés et leurs copies restent dans `data/interface/`
+port est redirigé (onglet *Ports*). Sinon, un tunnel SSH lancé depuis le
+poste, laissé ouvert :
+
+```bash
+ssh -N -L 18080:127.0.0.1:8080 <compte>@<serveur>
+# puis ouvrir http://127.0.0.1:18080
+```
+
+Le premier nombre est le port **du poste**. Windows réserve souvent des plages
+de ports, 8080 compris (« bind … Permission denied ») : en choisir un autre,
+comme 18080. `compose.yaml` ne publie toujours aucun port. Les documents déposés et leurs copies restent dans `data/interface/`
 (ignoré par Git) : l'effacer quand on n'en a plus besoin. Sans réponse en
 10 minutes, une écriture en attente est refusée.
 
