@@ -10,9 +10,14 @@ chemin d'exécution d'un outil sensible **passe forcément par lui** — voir
 """
 
 import logging
+import threading
 from typing import Protocol
 
 from agent.models import ToolCall
+
+# Sans réponse de la personne dans ce délai, l'action est refusée : une page
+# web fermée ne doit pas bloquer l'agent indéfiniment, ni valoir accord.
+PENDING_APPROVAL_TIMEOUT_SECONDS = 600.0
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +81,55 @@ class ConsoleApproval:
             "autorisee" if approved else "refusee",
         )
         return approved
+
+
+class PendingApproval:
+    """Attend la décision d'un humain, donnée depuis un autre fil d'exécution.
+
+    Sert à l'interface web : l'agent tourne dans un fil à part ; quand il
+    demande une action sensible, `approve` met l'appel en attente et bloque
+    ce fil. La page web affiche l'appel (`pendingCall`) et ses boutons
+    appellent `decide`, depuis le fil du serveur web. Pas de réponse dans le
+    délai : refus.
+    """
+
+    def __init__(
+        self, timeoutSeconds: float = PENDING_APPROVAL_TIMEOUT_SECONDS
+    ) -> None:
+        self._timeoutSeconds = timeoutSeconds
+        # Le verrou protège `pendingCall` et `_approved`, lus et écrits par
+        # deux fils différents ; l'événement réveille le fil de l'agent.
+        self._lock = threading.Lock()
+        self._decided = threading.Event()
+        self._approved = False
+        self.pendingCall: ToolCall | None = None
+
+    def approve(self, call: ToolCall) -> bool:
+        """Met l'appel en attente et bloque jusqu'à la décision ou au délai."""
+        with self._lock:
+            self.pendingCall = call
+            self._approved = False
+            self._decided.clear()
+        decided = self._decided.wait(self._timeoutSeconds)
+        with self._lock:
+            approved = decided and self._approved
+            self.pendingCall = None
+        logger.info(
+            "action sensible %s : %s",
+            call.toolName,
+            "autorisee" if approved else "refusee",
+        )
+        return approved
+
+    def decide(self, approved: bool) -> None:
+        """Enregistre la décision. Sans appel en attente, elle est ignorée."""
+        with self._lock:
+            # Un clic arrivé trop tard (délai écoulé, page restée ouverte) ne
+            # doit pas valoir accord pour la prochaine demande.
+            if self.pendingCall is None:
+                return
+            self._approved = approved
+            self._decided.set()
 
 
 REFUSAL_MESSAGE = (

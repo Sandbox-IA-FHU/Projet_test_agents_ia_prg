@@ -117,6 +117,14 @@ plus capable mais moins lisible est une régression.
 
 ## Où en est-on
 
+- 2026-10-30 — interface web restaurée (retrait du 29/10 annulé). Le
+  diagnostic « port publié muet » est à revérifier depuis un terminal hors
+  bac à sable : le shell de Claude Code ne joint aucun port TCP local, même
+  celui d'un processus de l'hôte.
+- 2026-10-29 — interface web (`web.py`, `scripts/interface_web.py`) :
+  dépôt, validation sur la page (`PendingApproval`), téléchargement.
+  Bibliothèque standard, port publié seulement à la demande sur 127.0.0.1.
+  Essai réel de bout en bout réussi sur un document fictif.
 - 2026-10-29 — option `--documents-demo` dans `run_agent.py`. Premier essai
   réel, une seule tâche sur `compte-rendu-reunion.docx` (un remplacement, une
   section ajoutée) : copie correcte, original intact, 3 tours, 7075 jetons
@@ -184,6 +192,7 @@ action refusée, outil en erreur — hors ligne.
 | `toolbox.py` | Les quatre outils d'exemple, dont l'évaluateur arithmétique sans `eval`. |
 | `documents.py` | Les trois outils Word : lister, lire, écrire une copie modifiée (sensible). |
 | `approval.py` | Politiques de validation. Défaut : refus. |
+| `web.py` | Interface web : dépôt d'un document, validation sur la page, copie à télécharger. |
 | `loop.py` | `runAgent` — la boucle, plafonnée. |
 | `evaluation.py` | Notation et agrégation : réussite, tours, jetons, latence. |
 

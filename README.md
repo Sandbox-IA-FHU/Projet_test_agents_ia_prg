@@ -203,6 +203,27 @@ docker compose run --rm agent-projet_test_agents_ia_prg python scripts/run_agent
 Non pris en charge dans cette version : liens hypertextes, en-têtes, pieds de
 page et zones de texte.
 
+### Interface web
+
+Une page pour déposer un document, décrire la modification, valider
+l'écriture proposée (boutons *Valider* / *Refuser*) et télécharger la copie.
+Bibliothèque standard uniquement (`src/agent/web.py`), aucune dépendance
+ajoutée. L'agent n'y dispose que des trois outils Word.
+
+```bash
+# sur un poste
+uv run --env-file .env python scripts/interface_web.py
+# sur le serveur de staging : port publié le temps de la session, sur 127.0.0.1
+docker compose run --rm -p 127.0.0.1:8080:8080 \
+  agent-projet_test_agents_ia_prg python scripts/interface_web.py --hote 0.0.0.0
+```
+
+Puis ouvrir `http://127.0.0.1:8080` ; depuis VS Code connecté au serveur, le
+port est redirigé (onglet *Ports*). `compose.yaml` ne publie toujours aucun
+port. Les documents déposés et leurs copies restent dans `data/interface/`
+(ignoré par Git) : l'effacer quand on n'en a plus besoin. Sans réponse en
+10 minutes, une écriture en attente est refusée.
+
 ---
 
 ## Le LLM
