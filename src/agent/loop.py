@@ -18,11 +18,11 @@ Trois propriétés ne se négocient pas :
 
 Le principe, en une phrase : le modèle ne fait rien lui-même, il **demande**
 des appels d'outils ; la boucle les exécute, lui renvoie les résultats, et
-recommence jusqu'à ce qu'il réponde sans rien demander. Exemple réel, pour
-« remplace jeudi par vendredi dans compte-rendu-reunion.docx » :
+recommence jusqu'à ce qu'il réponde sans rien demander. Exemple, pour la
+relecture de statuts d'EARL (voir `relecture.reviewActe`) :
 
-    tour 1  modèle → demande readDocument          boucle → rend le texte
-    tour 2  modèle → demande writeDocumentCopy     boucle → validation, copie
+    tour 1  modèle → demande chercherDansActe ×2   boucle → rend les paragraphes
+    tour 2  modèle → demande signalerPoint         boucle → enregistre le point
     tour 3  modèle → répond en texte, sans outil   boucle → s'arrête
 """
 
@@ -84,7 +84,7 @@ def executeCall(
             call=call, content=REFUSAL_MESSAGE, isError=True, wasRefused=True
         )
 
-    # 3. Exécution. Une erreur prévue (document introuvable, texte absent…)
+    # 3. Exécution. Une erreur prévue (contrôle inconnu, paragraphe absent…)
     #    devient un message pour le modèle, pas un plantage.
     try:
         result = spec.handler(call.arguments)
@@ -200,7 +200,9 @@ def summarizeTrace(trace: Trace) -> str:
     contient le contenu métier, intégralement.
     """
     lines = [
-        f"tâche : {trace.task[:120]}",
+        # Première ligne seulement : la suite d'une tâche de relecture contient
+        # la fiche société (dénomination, dirigeants).
+        f"tâche : {trace.task.splitlines()[0][:120] if trace.task else ''}",
         f"arrêt : {trace.stoppedReason} après {trace.stepCount} tour(s)",
         f"outils : {json.dumps(trace.toolNames(), ensure_ascii=False)}",
     ]

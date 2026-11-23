@@ -1,22 +1,23 @@
-"""Lance l'évaluation de l'agent et écrit un fichier de run daté.
+"""Évalue l'agent de relecture sur le jeu d'actes fictifs et écrit un run daté.
 
     uv run --env-file .env python scripts/evaluate.py --limite 3
-    uv run --env-file .env python scripts/evaluate.py --etiquette prompt-v1
+    uv run --env-file .env python scripts/evaluate.py --etiquette relecture-v1
 
 Le LLM est partagé entre plusieurs projets : un run complet occupe le serveur
 pour tout le monde. Toujours commencer par `--limite 3`.
 
 Trois points sur lesquels ce script ne transige pas :
 
-- **La validation est toujours en mode refus.** Un jeu d'évaluation ne doit
-  jamais pouvoir déclencher une action réelle, et un run qui attend une réponse
-  humaine ne se termine pas.
-- **Chaque cas repart d'un magasin de notes neuf** et de documents Word
-  neufs, fabriqués dans un dossier temporaire. Un cas qui modifie l'état
-  fausserait tous les suivants, et le score dépendrait de l'ordre des cas.
+- **Chaque cas repart de zéro**, dans un dossier temporaire : l'acte fictif y
+  est fabriqué, relu, et la copie commentée y est écrite puis effacée. Aucun
+  fichier d'évaluation ne reste sur le disque, et aucun cas n'influence le
+  suivant.
 - **Le modèle est consigné en entier** : nom exposé, modèle réel déclaré par
   le serveur, révision et niveau de réflexion. Le nom exposé est stable alors
   que le modèle derrière peut changer.
+- **La liste de contrôles et le prompt sont consignés** : modifier l'un ou
+  l'autre change ce que l'agent reçoit, et invalide la comparaison avec les
+  runs passés.
 """
 
 import argparse
@@ -27,7 +28,6 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-from agent.approval import DenyAll
 from agent.client import (
     KEEP_REASONING_IN_HISTORY,
     MAX_OUTPUT_TOKENS,
@@ -36,35 +36,28 @@ from agent.client import (
     OpenAICompatibleClient,
 )
 from agent.config import loadConfig
-from agent.documents import (
-    DocumentFolder,
-    buildDocumentTools,
-    createDocumentsFromSpec,
+from agent.errors import ActeError, ConfigError, ModelCallError, ReviewInputError
+from agent.evaluation import gradeCase, loadReviewSet, summarize, writeCaseActe
+from agent.loop import MAX_ITERATIONS
+from agent.relecture import (
+    KIND_JUDGEMENT,
+    OUT_OF_LIST,
+    companySheetFromDict,
+    loadChecks,
+    reviewActe,
 )
-from agent.errors import (
-    ConfigError,
-    DocumentFolderError,
-    ModelCallError,
-    NoteStoreError,
-)
-from agent.evaluation import gradeCase, loadTaskSet, summarize
-from agent.loop import MAX_ITERATIONS, runAgent
-from agent.toolbox import NoteStore, buildToolbox
-from agent.tools import ToolRegistry
 
-DEFAULT_NOTES = Path("evaluations/jeux/notes_demo.jsonl")
-DEFAULT_TASK_SET = Path("evaluations/jeux/taches_demo.jsonl")
-DEFAULT_DOCUMENTS = Path("evaluations/jeux/documents_demo.jsonl")
-DEFAULT_PROMPT = Path("prompts/agent_v2.md")
+DEFAULT_SET = Path("evaluations/jeux/relecture_demo.jsonl")
+DEFAULT_CHECKS = Path("controles/controles.toml")
+DEFAULT_PROMPT = Path("prompts/relecture_v1.md")
 RUNS_DIR = Path("evaluations/runs")
 
 
 def buildParser() -> argparse.ArgumentParser:
     """Décrit les arguments de la ligne de commande."""
-    parser = argparse.ArgumentParser(description="Évalue l'agent.")
-    parser.add_argument("--notes", type=Path, default=DEFAULT_NOTES)
-    parser.add_argument("--jeu", type=Path, default=DEFAULT_TASK_SET)
-    parser.add_argument("--documents", type=Path, default=DEFAULT_DOCUMENTS)
+    parser = argparse.ArgumentParser(description="Évalue l'agent de relecture.")
+    parser.add_argument("--jeu", type=Path, default=DEFAULT_SET)
+    parser.add_argument("--controles", type=Path, default=DEFAULT_CHECKS)
     parser.add_argument(
         "--etiquette", default="run", help="Suffixe du nom de fichier de run."
     )
@@ -120,14 +113,19 @@ def main() -> int:
     logging.basicConfig(level=config.logLevel, format="%(levelname)s %(message)s")
 
     try:
-        cases = loadTaskSet(args.jeu)
-        NoteStore.fromFile(args.notes)  # échoue tout de suite si illisible
-    except NoteStoreError as error:
+        cases = loadReviewSet(args.jeu)
+        checks = loadChecks(args.controles)
+    except ReviewInputError as error:
         print(f"Données : {error}", file=sys.stderr)
         return 1
 
     if args.limite is not None:
         cases = cases[: args.limite]
+
+    # Contrôles confiés à l'agent (et « hors liste ») : leur rappel se mesure
+    # à part, celui des contrôles du code est garanti par les tests.
+    judgementIds = {c.checkId for c in checks if c.kind == KIND_JUDGEMENT}
+    judgementIds.add(OUT_OF_LIST)
 
     client = OpenAICompatibleClient(
         baseUrl=config.baseUrl,
@@ -149,41 +147,38 @@ def main() -> int:
         f"{'oui' if args.garderReflexion else 'non'}), "
         f"prompt {DEFAULT_PROMPT.name}."
     )
-    print(
-        f"Jusqu'à {args.maxIterations * len(cases)} appels au LLM partagé. "
-        "Validation : refus."
-    )
+    print(f"Jusqu'à {args.maxIterations * len(cases)} appels au LLM partagé.")
 
     results = []
     for case in cases:
-        # Magasin neuf pour chaque cas : aucun cas n'influence le suivant.
         try:
             with tempfile.TemporaryDirectory() as workDir:
-                inputDir = Path(workDir) / "entree"
-                createDocumentsFromSpec(args.documents, inputDir)
-                folder = DocumentFolder(inputDir, Path(workDir) / "sortie")
-                registry = ToolRegistry(
-                    buildToolbox(NoteStore.fromFile(args.notes))
-                    + buildDocumentTools(folder)
-                )
-                trace = runAgent(
+                actePath = writeCaseActe(case, Path(workDir) / "entree")
+                review = reviewActe(
                     client=client,
-                    registry=registry,
-                    approval=DenyAll(),
+                    actePath=actePath,
+                    sheet=companySheetFromDict(case.sheet, case.caseId),
+                    checks=checks,
+                    acteType=case.acteType,
                     systemPrompt=systemPrompt,
-                    task=case.task,
+                    outputDir=Path(workDir) / "sortie",
+                    today=date.today().isoformat(),
                     maxIterations=args.maxIterations,
                 )
         except ModelCallError as error:
             print(f"{case.caseId} : appel modèle échoué — {error}", file=sys.stderr)
             return 1
-        except DocumentFolderError as error:
-            print(f"Documents : {error}", file=sys.stderr)
+        except (ReviewInputError, ActeError) as error:
+            print(f"{case.caseId} : {error}", file=sys.stderr)
             return 1
 
-        result = gradeCase(case, trace)
+        result = gradeCase(case, review.trace, review.findings, judgementIds)
         results.append(result)
         flags = []
+        if result.missedChecks:
+            flags.append(f"manqués {list(result.missedChecks)}")
+        if result.falseChecks:
+            flags.append(f"à tort {list(result.falseChecks)}")
         if result.forbiddenToolCalled:
             flags.append("OUTIL INTERDIT")
         if result.hitIterationLimit:
@@ -204,14 +199,13 @@ def main() -> int:
         },
         "prompt": f"prompts/{DEFAULT_PROMPT.name}",
         "jeu": str(args.jeu).replace("\\", "/"),
-        "documents": str(args.documents).replace("\\", "/"),
+        "controles": str(args.controles).replace("\\", "/"),
         "nb_cas": len(results),
         "parametres": {
             "max_iterations": args.maxIterations,
             "max_output_tokens": MAX_OUTPUT_TOKENS,
             "reflexion": args.reflexion,
             "garder_reflexion": args.garderReflexion,
-            "approbation": "refus",
         },
         "resultats": summary,
         "commentaire": "",
@@ -225,8 +219,12 @@ def main() -> int:
 
     print()
     print(f"Tâches réussies       : {summary['tache_reussie']}")
-    print(f"Outil interdit appelé : {summary['outil_interdit_appele']}")
     print(f"Plafond atteint       : {summary['limite_iterations_atteinte']}")
+    print(
+        f"Rappel (jugement)     : {summary['rappel_jugement']} sur "
+        f"{summary['points_jugement_attendus']} point(s) attendu(s)"
+    )
+    print(f"Faux signalements     : {summary['faux_signalements']}")
     print(
         f"Étapes médianes / max : {summary['etapes_medianes']} / "
         f"{summary['etapes_max']}"

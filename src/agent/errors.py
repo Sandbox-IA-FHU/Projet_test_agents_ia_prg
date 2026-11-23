@@ -25,5 +25,9 @@ class NoteStoreError(Exception):
     """Note introuvable ou magasin de notes illisible."""
 
 
-class DocumentFolderError(Exception):
-    """Dossier de documents Word absent ou mal configuré."""
+class ActeError(Exception):
+    """Acte Word introuvable ou illisible."""
+
+
+class ReviewInputError(Exception):
+    """Fiche société, liste de contrôles ou jeu d'évaluation invalide."""

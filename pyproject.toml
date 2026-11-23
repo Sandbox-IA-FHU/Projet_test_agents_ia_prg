@@ -1,11 +1,11 @@
 [project]
 name = "projet-test-agents-ia-prg"
 version = "0.1.0"
-description = "Agent qui lit et modifie des documents Word, en rendant une copie"
+description = "Agent qui relit des actes juridiques Word et signale erreurs et incohérences, sans les modifier"
 requires-python = ">=3.13"
 dependencies = [
     "openai>=3.37,<4",
-    "python-docx>=1.1,<2",
+    "python-docx>=1.2,<2", # 1.2 : commentaires Word (add_comment)
 ]
 
 [dependency-groups]

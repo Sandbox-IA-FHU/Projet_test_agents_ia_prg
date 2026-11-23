@@ -1,0 +1,151 @@
+# Liste des contrôles de relecture, par forme sociale et par type d'acte.
+#
+# ⚠ EXEMPLES DE DÉMARRAGE, À FAIRE VALIDER PAR LES JURISTES. Ils servent à
+# faire tourner et à évaluer l'agent ; leur exactitude juridique n'a pas été
+# vérifiée par un juriste. Aucun nom de client, aucune donnée réelle ici : ce
+# dépôt est public.
+#
+# Un contrôle par bloc [[controle]]. Champs communs :
+#   id           identifiant unique, cité dans le rapport et les commentaires
+#   type         terme_interdit | fiche | verification (voir plus bas)
+#   gravite      bloquant | majeur | mineur | a_verifier
+#   formes       formes sociales concernées, ["*"] pour toutes
+#   actes        types d'acte concernés (statuts, proces_verbal…), ["*"] pour tous
+#   description  ce que le juriste lit dans le commentaire
+#
+# Les trois types :
+#   terme_interdit  vérifié par le code, sans LLM. Champs : terme (cherché en
+#                   mot entier, singulier ou pluriel, majuscules indifférentes)
+#                   et remplacement (facultatif, le terme attendu). C'est ici
+#                   qu'on corrige les erreurs connues de la bibliothèque de
+#                   clauses de l'outil de production.
+#   fiche           vérifié par le code, sans LLM. Champ : champ
+#                   (denomination, capital, siege, dirigeants). Signale une
+#                   valeur de la fiche société introuvable dans l'acte.
+#   verification    confié à l'agent. Champ : consigne, une question précise
+#                   à laquelle l'acte permet de répondre.
+#
+# Ajouter un contrôle de type « verification » change ce que l'agent reçoit :
+# c'est une modification de prompt, qui se mesure (voir le README).
+
+# --- Toutes formes, tous actes : cohérence avec la fiche société -----------
+
+[[controle]]
+id = "fiche-denomination"
+type = "fiche"
+champ = "denomination"
+gravite = "bloquant"
+formes = ["*"]
+actes = ["*"]
+description = "Vérifier la dénomination sociale."
+
+[[controle]]
+id = "fiche-capital"
+type = "fiche"
+champ = "capital"
+gravite = "bloquant"
+formes = ["*"]
+actes = ["statuts"]
+description = "Vérifier le montant du capital social."
+
+[[controle]]
+id = "fiche-siege"
+type = "fiche"
+champ = "siege"
+gravite = "majeur"
+formes = ["*"]
+actes = ["statuts"]
+description = "Vérifier l'adresse du siège social."
+
+[[controle]]
+id = "fiche-dirigeants"
+type = "fiche"
+champ = "dirigeants"
+gravite = "majeur"
+formes = ["*"]
+actes = ["statuts"]
+description = "Vérifier l'identité des dirigeants."
+
+# --- Toutes formes : cohérences internes, confiées à l'agent ---------------
+
+[[controle]]
+id = "coherence-capital-repartition"
+type = "verification"
+gravite = "bloquant"
+formes = ["*"]
+actes = ["statuts"]
+description = "Répartition du capital incohérente."
+consigne = "La somme des apports, ou le nombre de parts multiplié par leur valeur nominale, est-elle égale au capital indiqué dans l'acte ?"
+
+[[controle]]
+id = "coherence-denomination-constante"
+type = "verification"
+gravite = "mineur"
+formes = ["*"]
+actes = ["*"]
+description = "Dénomination écrite de façon variable."
+consigne = "La dénomination de la société est-elle écrite de la même façon partout dans l'acte ?"
+
+# --- EARL ------------------------------------------------------------------
+
+[[controle]]
+id = "earl-terme-entreprise"
+type = "terme_interdit"
+terme = "entreprise"
+remplacement = "exploitation"
+gravite = "majeur"
+formes = ["EARL"]
+actes = ["statuts"]
+description = "Une EARL est une exploitation agricole : erreur connue de la bibliothèque de clauses."
+
+[[controle]]
+id = "earl-gerant-associe-exploitant"
+type = "verification"
+gravite = "bloquant"
+formes = ["EARL"]
+actes = ["statuts"]
+description = "Gérance d'EARL."
+consigne = "Chaque gérant désigné est-il une personne physique et un associé exploitant de l'EARL ?"
+
+# --- SARL ------------------------------------------------------------------
+
+[[controle]]
+id = "sarl-gerant-personne-physique"
+type = "verification"
+gravite = "bloquant"
+formes = ["SARL"]
+actes = ["statuts"]
+description = "Gérance de SARL."
+consigne = "Chaque gérant désigné est-il une personne physique (et non une société) ?"
+
+# --- SAS -------------------------------------------------------------------
+
+[[controle]]
+id = "sas-terme-gerant"
+type = "terme_interdit"
+terme = "gérant"
+remplacement = "président"
+gravite = "a_verifier"
+formes = ["SAS"]
+actes = ["statuts"]
+description = "Une SAS est dirigée par un président ; « gérant » vient souvent d'une clause de SARL."
+
+[[controle]]
+id = "sas-president-designe"
+type = "verification"
+gravite = "bloquant"
+formes = ["SAS"]
+actes = ["statuts"]
+description = "Président de SAS."
+consigne = "Les statuts désignent-ils un président, ou disent-ils comment il est désigné ?"
+
+# --- Procès-verbaux ----------------------------------------------------------
+
+[[controle]]
+id = "pv-date-coherente"
+type = "verification"
+gravite = "majeur"
+formes = ["*"]
+actes = ["proces_verbal"]
+description = "Date de l'assemblée."
+consigne = "La date de l'assemblée est-elle la même partout dans le procès-verbal (en-tête, corps, clôture) ?"

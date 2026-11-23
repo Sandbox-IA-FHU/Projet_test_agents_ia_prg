@@ -71,28 +71,45 @@ horaire inhabituel : demander avant de supposer que le serveur est allumé.
 
 ## Le projet
 
-**Question posée** : un agent à outils sur le LLM local peut-il lire un
-document Word, le modifier à la demande (remplacer du texte, ajouter des
-sections) en conservant sa mise en forme, et en rendre une copie, sans jamais
-toucher à l'original ni écrire sans accord humain ?
+**Question posée** : un agent à outils sur le LLM local peut-il relire un
+acte de droit des affaires au format Word (statuts, procès-verbal), le
+comparer à une fiche société et à une liste de contrôles par forme sociale et
+type d'acte, et signaler chaque erreur au bon paragraphe avec sa gravité, sans
+faux signalement et **sans jamais modifier l'acte** ?
 
-**Pour qui** : les collaborateurs, pour faire modifier un document Word en
-langage courant au lieu de le retoucher à la main.
+**Pour qui** : les juristes. Ce sont eux qui corrigent ; l'agent signale.
+L'outil de production des actes ne doit pas compter :
+on ne lit que le `.docx` final, champs de formulaire compris.
 
-**Outils** : ceux du modèle (`listNotes`, `readNote`, `calculate`, et
-`deleteNote`, sensible), plus trois outils Word dans `documents.py` :
-`listDocuments`, `readDocument` et `writeDocumentCopy`, **sensible**. Ce
-dernier remplace du texte et ajoute des sections en gardant la mise en forme,
-et écrit toujours une copie dans `DOCUMENTS_SORTIE` : l'original n'est jamais
-écrit, une copie n'est jamais écrasée. Les outils de notes viennent du modèle
-et restent pour l'instant ; les retirer est une décision à part, qui change le
-jeu d'évaluation. Tout futur outil qui envoie, publie, écrase ou supprime un
-document sera `isSensitive=True`.
+**Le problème principal** : la bibliothèque de clauses de l'outil de
+production contient des erreurs (« entreprise » au lieu d'« exploitation »
+dans des statuts d'EARL). Ces erreurs connues sont des contrôles
+`terme_interdit` de `controles/controles.toml`, vérifiés par le code.
 
-**Données** : un document de travail est par nature une donnée réelle. Aucun
-`.docx` réel n'entre dans le dépôt (`*.docx` est dans `.gitignore`, les
-documents vivent dans `data/`) : le jeu d'évaluation utilise des documents
-fictifs, décrits en texte dans `evaluations/jeux/documents_demo.jsonl`.
+**Principe** : ce qu'une règle sait vérifier, le code le vérifie
+(`terme_interdit`, `fiche`) ; seul le jugement va au LLM (`verification`).
+Gravités : `bloquant`, `majeur`, `mineur`, `a_verifier`.
+
+**Outils de l'agent** (`relecture.py`) : `chercherDansActe`, `lireActe`,
+`signalerPoint`. **Aucun outil d'écriture** : `signalerPoint` ajoute à une
+liste en mémoire. La copie commentée (un commentaire Word par point, suivi des
+modifications activé) et le rapport sont écrits par le code après la boucle,
+dans `RELECTURE_SORTIE` ; l'original n'est jamais ouvert en écriture, une
+copie n'est jamais écrasée. Test : `test_reviewAgentHasNoWriteTool`. Ajouter
+un outil à ce registre est une décision à justifier, et tout outil qui envoie,
+publie, écrit ou supprime sera `isSensitive=True`.
+
+Les outils de notes du modèle (`toolbox.py`) ne sont **pas** dans le registre
+de relecture. Ils restent dans le dépôt parce qu'ils portent les invariants 3
+et 4 ci-dessous ; les supprimer est une décision à part.
+
+**Données** : un acte est par nature une donnée réelle. Aucun `.docx` réel
+n'entre dans le dépôt (`*.docx` est dans `.gitignore`, les actes vivent dans
+`data/`). Le rapport contient des extraits de l'acte : il reste dans `data/`.
+Le jeu d'évaluation utilise des actes fictifs, décrits en texte dans
+`evaluations/jeux/relecture_demo.jsonl`. Les contrôles de
+`controles/controles.toml` sont des **exemples à faire valider par un
+juriste** : ne jamais présenter leur contenu juridique comme vérifié.
 
 Le code reste volontairement minuscule : une modification qui rend l'agent
 plus capable mais moins lisible est une régression.
@@ -117,6 +134,11 @@ plus capable mais moins lisible est une régression.
 
 ## Où en est-on
 
+- 2026-11-23 — objectif changé : relecture d'actes de droit des affaires. La
+  modification de documents Word est reprise par Florian ; `documents.py` et
+  son jeu sont retirés (dans l'historique, commit `03dea9a`). Ajouts :
+  `acte.py`, `relecture.py`, `controles/controles.toml`, prompt
+  `relecture_v1.md`, jeu de 13 cas. Tests hors ligne verts. Aucun run.
 - 2026-10-30 — interface web retirée : le pare-feu du serveur de staging
   refuse les connexions locales vers un port publié, tunnel SSH compris
   (confirmé). Le code reste dans l'historique (commit `f2e9d47`) ; y revenir
@@ -185,11 +207,12 @@ action refusée, outil en erreur — hors ligne.
 | `config.py` | Seul endroit qui lit `os.environ`. Valide et échoue au démarrage. |
 | `client.py` | Seul module qui connaît le SDK. Protocole `AgentClient`. Écarte la réflexion. |
 | `tools.py` | Registre : le schéma envoyé au modèle et la fonction exécutée viennent du même objet. |
-| `toolbox.py` | Les quatre outils d'exemple, dont l'évaluateur arithmétique sans `eval`. |
-| `documents.py` | Les trois outils Word : lister, lire, écrire une copie modifiée (sensible). |
+| `toolbox.py` | Les quatre outils de notes du modèle, hors registre de relecture. |
+| `acte.py` | Lecture de l'acte (champs de formulaire et tableaux compris), copie commentée. |
+| `relecture.py` | Fiche société, contrôles, contrôles du code, outils de l'agent, rapport, `reviewActe`. |
 | `approval.py` | Politiques de validation. Défaut : refus. |
 | `loop.py` | `runAgent` — la boucle, plafonnée. |
-| `evaluation.py` | Notation et agrégation : réussite, tours, jetons, latence. |
+| `evaluation.py` | Notation par points attendus / interdits, agrégation : réussite, rappel, tours, jetons. |
 
 ## Les quatre choses à ne pas casser
 
@@ -385,7 +408,9 @@ Dans cet ordre, et le premier est éliminatoire :
    ininterprétables. Beaucoup de plafonds atteints = le score de réussite porte
    sur moins de cas qu'annoncé.
 3. `tache_reussie`, **et son découpage par type**. Des échecs concentrés sur
-   les cas de refus décrivent un système dangereux affiché comme correct.
+   les cas `retenue` décrivent un agent qui noie le juriste sous les faux
+   points ; sur `injection`, un agent qu'un acte peut faire taire. Puis
+   `rappel_jugement` (seuil : 0,8) et `faux_signalements`.
 4. `etapes_medianes` / `etapes_max` / `jetons_par_tache` — la charge, et le
    meilleur gisement d'économies.
 5. Latence médiane et p95, et le bloc `modele` : nom exposé, modèle réel,
@@ -404,13 +429,13 @@ courante sur un agent.
 **Une modification de prompt — ou de description d'outil — se mesure.** Un run
 avant, un run après, un seul paramètre changé.
 
-**Prévenir de la charge avant de lancer une évaluation.** Sur 24 cas et
-`MAX_ITERATIONS = 8`, c'est jusqu'à 192 appels au LLM partagé, pas 24.
+**Prévenir de la charge avant de lancer une évaluation.** Sur 13 cas et
+`MAX_ITERATIONS = 8`, c'est jusqu'à 104 appels au LLM partagé, pas 13.
 Proposer `--limite 3` d'abord. Sur le serveur, appliquer aussi la règle des
 horaires.
 
-**Ne pas conclure sur un écart faible.** Sur 24 cas, deux cas qui basculent
-font 8 points. Traduis toujours un écart en nombre de cas.
+**Ne pas conclure sur un écart faible.** Sur 13 cas, un seul cas qui bascule
+fait 8 points. Traduis toujours un écart en nombre de cas.
 
 **Ne pas ajouter de dépendance** sans raison écrite. En particulier : pas de
 framework d'agents, pas de bibliothèque d'orchestration « pour voir », pas de

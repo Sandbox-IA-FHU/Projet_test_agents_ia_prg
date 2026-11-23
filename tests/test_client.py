@@ -18,7 +18,7 @@ from agent.client import (
     turnFromResponse,
 )
 from agent.errors import ModelCallError
-from agent.evaluation import TaskCase, gradeCase, summarize
+from agent.evaluation import ReviewCase, gradeCase, summarize
 from agent.loop import runAgent, summarizeTrace
 from agent.tools import ToolRegistry
 from tests.conftest import ScriptedClient, completion, textTurn, toolTurn
@@ -143,16 +143,18 @@ def test_keptReasoningGoesBackToTheModelOnly(registry: ToolRegistry) -> None:
         systemPrompt="Consignes de test.",
         task="quel tarif ?",
     )
-    case = TaskCase(
+    case = ReviewCase(
         caseId="t-test",
         caseType="nominal",
-        task="quel tarif ?",
-        expectedKeywords=("95",),
-        forbiddenKeywords=(),
+        acteType="statuts",
+        sheet={},
+        paragraphs=(),
+        expectedChecks=(),
+        forbiddenChecks=(),
         forbiddenTools=("deleteNote",),
         maxSteps=3,
     )
-    runSummary = summarize([gradeCase(case, trace)])
+    runSummary = summarize([gradeCase(case, trace, [], set())])
 
     assistantMessage = client.calls[1][1]
     assert assistantMessage["reasoning"] == SECRET_REASONING

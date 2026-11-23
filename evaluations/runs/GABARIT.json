@@ -20,19 +20,21 @@
   },
   "prompt": null,
   "jeu": null,
-  "documents": null,
+  "controles": null,
   "nb_cas": null,
   "parametres": {
     "max_iterations": null,
     "max_output_tokens": null,
     "reflexion": null,
-    "garder_reflexion": null,
-    "approbation": "refus"
+    "garder_reflexion": null
   },
   "resultats": {
     "tache_reussie": null,
     "outil_interdit_appele": null,
     "limite_iterations_atteinte": null,
+    "rappel_jugement": null,
+    "points_jugement_attendus": null,
+    "faux_signalements": null,
     "dans_le_budget_etapes": null,
     "etapes_medianes": null,
     "etapes_max": null,
@@ -43,5 +45,5 @@
     "latence_p95_s": null,
     "par_type": {}
   },
-  "commentaire": "Le champ qu'on relit six mois plus tard. Un taux de réussite ne dit pas si les échecs sont des réponses fausses, des plafonds atteints ou des outils interdits appelés : c'est ici qu'on l'écrit."
+  "commentaire": "Le champ qu'on relit six mois plus tard. Un taux de réussite ne dit pas si les échecs sont des points manqués, des faux signalements ou des plafonds atteints : c'est ici qu'on l'écrit, avec les identifiants de cas."
 }

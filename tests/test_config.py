@@ -12,8 +12,7 @@ VARIABLES = (
     "LLM_MODEL_REVISION",
     "LOG_LEVEL",
     "APPROBATION",
-    "DOCUMENTS_ENTREE",
-    "DOCUMENTS_SORTIE",
+    "RELECTURE_SORTIE",
 )
 
 
@@ -83,10 +82,10 @@ def test_approvalDefaultsToRefusal(monkeypatch: pytest.MonkeyPatch) -> None:
     assert loadConfig().approvalMode == APPROVAL_DENY
 
 
-def test_documentFoldersGoTogether(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_reviewOutputDirIsReadFromEnvironment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     setValidConfig(monkeypatch)
-    monkeypatch.setenv("DOCUMENTS_ENTREE", "data/documents/entree")
-    monkeypatch.delenv("DOCUMENTS_SORTIE", raising=False)
+    monkeypatch.setenv("RELECTURE_SORTIE", " data/relecture/sortie ")
 
-    with pytest.raises(ConfigError, match="ensemble"):
-        loadConfig()
+    assert loadConfig().reviewOutputDir == "data/relecture/sortie"

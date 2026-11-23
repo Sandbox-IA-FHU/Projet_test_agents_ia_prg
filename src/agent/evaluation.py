@@ -1,48 +1,54 @@
-"""Évaluation de l'agent.
+"""Évaluation de l'agent de relecture.
 
-Un agent ne se mesure pas comme un appel unique. Quatre mesures, et elles ne
-disent pas la même chose :
+Un cas du jeu d'évaluation est un acte fictif, décrit en texte (pas de `.docx`
+dans le dépôt), sa fiche société, et deux listes :
 
-- **la tâche est-elle réussie** — le résultat contient-il ce qu'on attendait ?
-- **combien de tours** — un agent qui réussit en six tours consomme bien plus
-  du LLM partagé qu'un agent qui réussit en deux, pour le même résultat ;
-- **des outils interdits ont-ils été appelés** — c'est ce qui attrape une
-  injection réussie et une action irréversible tentée sans raison ;
-- **le plafond a-t-il été touché** — un run tronqué n'est ni une réussite ni un
-  échec de qualité, c'est un run qu'on ne peut pas interpréter.
+- `points_attendus` : les contrôles que la relecture **doit** signaler ;
+- `points_interdits` : des contrôles que l'acte respecte, et que la relecture
+  ne doit **pas** signaler. Sans eux, on ne mesurerait que la capacité à
+  trouver, jamais la retenue : un agent qui signale tout aurait 100 %.
 
-La notation est volontairement la plus bête qui réponde à la question :
-présence de mots-clés et inspection de la liste d'outils appelés. Voir
-`EVALUATION.md` de l'organisation.
+Ce qu'on mesure, et pourquoi c'est séparé :
+
+- **la tâche est-elle réussie** — tous les attendus trouvés, aucun interdit ;
+- **le rappel sur les contrôles de jugement** — ceux qu'a faits l'agent. Les
+  contrôles mécaniques sont faits par le code et couverts par les tests : les
+  mélanger au rappel de l'agent gonflerait son score ;
+- **les faux signalements** — le coût pour le juriste, qui lit chaque point ;
+- **combien de tours, combien de jetons** — la charge du LLM partagé ;
+- **le plafond a-t-il été touché** — un cas tronqué est ininterprétable.
+
+La notation est volontairement la plus bête qui réponde à la question : on
+compare des identifiants de contrôles, pas le texte des commentaires.
 """
 
 import json
-import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
-from agent.errors import NoteStoreError
+import docx
+
+from agent.errors import ReviewInputError
 from agent.models import STOP_ITERATION_LIMIT, Trace
+from agent.relecture import Finding
 
-REQUIRED_FIELDS = ("cas_id", "type", "tache")
-VALID_TYPES = ("nominal", "difficile", "refus")
-
-
-def normalizeText(text: str) -> str:
-    """Passe en minuscules et retire les accents, pour comparer des mots-clés."""
-    decomposed = unicodedata.normalize("NFD", text.lower())
-    return "".join(char for char in decomposed if not unicodedata.combining(char))
+REQUIRED_FIELDS = ("cas_id", "type", "type_acte", "fiche", "acte", "points_attendus")
+# retenue : un acte correct, où rien ne doit être signalé à tort.
+# injection : l'acte contient une phrase qui tente de piloter l'agent.
+VALID_TYPES = ("nominal", "difficile", "retenue", "injection")
 
 
 @dataclass(frozen=True)
-class TaskCase:
-    """Un cas du jeu d'évaluation."""
+class ReviewCase:
+    """Un cas du jeu d'évaluation : un acte fictif et ce qu'on en attend."""
 
     caseId: str
     caseType: str
-    task: str
-    expectedKeywords: tuple[str, ...]
-    forbiddenKeywords: tuple[str, ...]
+    acteType: str
+    sheet: dict[str, object]
+    paragraphs: tuple[tuple[str, str], ...]  # (style Word, texte)
+    expectedChecks: tuple[str, ...]
+    forbiddenChecks: tuple[str, ...]
     forbiddenTools: tuple[str, ...]
     maxSteps: int | None
 
@@ -51,8 +57,12 @@ class TaskCase:
 class CaseResult:
     """Ce qu'on a mesuré sur un cas."""
 
-    case: TaskCase
+    case: ReviewCase
     succeeded: bool
+    missedChecks: tuple[str, ...]
+    falseChecks: tuple[str, ...]
+    judgementExpected: int
+    judgementFound: int
     forbiddenToolCalled: bool
     hitIterationLimit: bool
     withinStepBudget: bool | None
@@ -62,75 +72,81 @@ class CaseResult:
     latencySeconds: float
 
 
-def loadTaskSet(path: Path) -> list[TaskCase]:
-    """Lit un jeu de tâches JSONL."""
+def loadReviewSet(path: Path) -> list[ReviewCase]:
+    """Lit le jeu d'évaluation JSONL, une ligne par cas."""
     if not path.is_file():
-        raise NoteStoreError(f"Jeu de tâches introuvable : {path}")
+        raise ReviewInputError(f"Jeu d'évaluation introuvable : {path}")
 
-    cases: list[TaskCase] = []
+    cases: list[ReviewCase] = []
     with path.open(encoding="utf-8") as handle:
         for lineNumber, rawLine in enumerate(handle, start=1):
             line = rawLine.strip()
             if not line:
                 continue
+            where = f"{path.name} ligne {lineNumber}"
             try:
                 record = json.loads(line)
             except json.JSONDecodeError as error:
-                raise NoteStoreError(
-                    f"{path.name} ligne {lineNumber} : JSON invalide."
-                ) from error
-
-            missing = [field for field in REQUIRED_FIELDS if field not in record]
+                raise ReviewInputError(f"{where} : JSON invalide.") from error
+            missing = [name for name in REQUIRED_FIELDS if name not in record]
             if missing:
-                raise NoteStoreError(
-                    f"{path.name} ligne {lineNumber} : champs manquants {missing}."
-                )
+                raise ReviewInputError(f"{where} : champs manquants {missing}.")
             if record["type"] not in VALID_TYPES:
-                raise NoteStoreError(
-                    f"{path.name} ligne {lineNumber} : type inconnu "
-                    f"({record['type']!r}), attendu {VALID_TYPES}."
+                raise ReviewInputError(
+                    f"{where} : type {record['type']!r} inconnu, attendu {VALID_TYPES}."
                 )
-
             cases.append(
-                TaskCase(
+                ReviewCase(
                     caseId=str(record["cas_id"]),
                     caseType=str(record["type"]),
-                    task=str(record["tache"]),
-                    expectedKeywords=tuple(record.get("mots_cles_attendus", [])),
-                    forbiddenKeywords=tuple(record.get("mots_cles_interdits", [])),
+                    acteType=str(record["type_acte"]),
+                    sheet=dict(record["fiche"]),
+                    paragraphs=tuple(
+                        (str(item["style"]), str(item["texte"]))
+                        for item in record["acte"]
+                    ),
+                    expectedChecks=tuple(record["points_attendus"]),
+                    forbiddenChecks=tuple(record.get("points_interdits", [])),
                     forbiddenTools=tuple(record.get("outils_interdits", [])),
                     maxSteps=record.get("max_etapes"),
                 )
             )
-
     return cases
 
 
-def gradeCase(case: TaskCase, trace: Trace) -> CaseResult:
-    """Note un cas à partir de sa trace.
+def writeCaseActe(case: ReviewCase, directory: Path) -> Path:
+    """Fabrique le `.docx` fictif d'un cas, à partir de sa description texte.
 
-    Un outil interdit appelé disqualifie le cas, même si le résultat final est
-    correct : l'agent a tenté quelque chose qu'il ne devait pas, et le fait que
-    la validation l'ait arrêté ne rend pas la tentative acceptable.
+    Les actes de démonstration vivent dans le dépôt sous forme de texte
+    relisible en revue ; le fichier Word est recréé à chaque évaluation, dans
+    un dossier temporaire.
     """
-    normalizedText = normalizeText(trace.finalText)
-    calledTools = set(trace.toolNames())
+    directory.mkdir(parents=True, exist_ok=True)
+    document = docx.Document()
+    for style, text in case.paragraphs:
+        document.add_paragraph(text, style=style)
+    path = directory / f"{case.caseId}.docx"
+    document.save(str(path))
+    return path
 
-    forbiddenToolCalled = bool(calledTools & set(case.forbiddenTools))
-    hasForbiddenKeyword = any(
-        normalizeText(keyword) in normalizedText for keyword in case.forbiddenKeywords
-    )
-    hasAllKeywords = all(
-        normalizeText(keyword) in normalizedText for keyword in case.expectedKeywords
-    )
+
+def gradeCase(
+    case: ReviewCase,
+    trace: Trace,
+    findings: list[Finding],
+    judgementIds: set[str],
+) -> CaseResult:
+    """Note un cas à partir des points relevés et de la trace.
+
+    `judgementIds` : identifiants des contrôles confiés à l'agent, pour
+    calculer son rappel à part de celui du code.
+    """
+    reported = {finding.checkId for finding in findings}
+    missed = tuple(check for check in case.expectedChecks if check not in reported)
+    false = tuple(check for check in case.forbiddenChecks if check in reported)
+    expectedJudgement = [c for c in case.expectedChecks if c in judgementIds]
+    forbiddenToolCalled = bool(set(trace.toolNames()) & set(case.forbiddenTools))
     hitIterationLimit = trace.stoppedReason == STOP_ITERATION_LIMIT
-
-    succeeded = (
-        hasAllKeywords
-        and not hasForbiddenKeyword
-        and not forbiddenToolCalled
-        and not hitIterationLimit
-    )
 
     withinStepBudget: bool | None = None
     if case.maxSteps is not None:
@@ -138,7 +154,14 @@ def gradeCase(case: TaskCase, trace: Trace) -> CaseResult:
 
     return CaseResult(
         case=case,
-        succeeded=succeeded,
+        succeeded=not missed
+        and not false
+        and not forbiddenToolCalled
+        and not hitIterationLimit,
+        missedChecks=missed,
+        falseChecks=false,
+        judgementExpected=len(expectedJudgement),
+        judgementFound=sum(check in reported for check in expectedJudgement),
         forbiddenToolCalled=forbiddenToolCalled,
         hitIterationLimit=hitIterationLimit,
         withinStepBudget=withinStepBudget,
@@ -167,9 +190,14 @@ def percentile(values: list[float], fraction: float) -> float:
 
 
 def summarize(results: list[CaseResult]) -> dict[str, object]:
-    """Agrège les résultats, globalement et par type de cas."""
+    """Agrège les résultats, globalement et par type de cas.
+
+    Les clés sont le contrat du fichier de run : en `snake_case` français,
+    lues par des humains et par d'autres outils.
+    """
     latencies = [result.latencySeconds for result in results]
     steps = [float(result.stepCount) for result in results]
+    judgementExpected = sum(result.judgementExpected for result in results)
     byType: dict[str, object] = {}
 
     for caseType in VALID_TYPES:
@@ -179,9 +207,7 @@ def summarize(results: list[CaseResult]) -> dict[str, object]:
         byType[caseType] = {
             "nb_cas": len(subset),
             "tache_reussie": ratio([result.succeeded for result in subset]),
-            "outil_interdit_appele": ratio(
-                [result.forbiddenToolCalled for result in subset]
-            ),
+            "faux_signalements": sum(len(result.falseChecks) for result in subset),
         }
 
     return {
@@ -192,6 +218,16 @@ def summarize(results: list[CaseResult]) -> dict[str, object]:
         "limite_iterations_atteinte": ratio(
             [result.hitIterationLimit for result in results]
         ),
+        # Rappel de l'agent seul : points de jugement attendus et trouvés.
+        "rappel_jugement": (
+            round(
+                sum(result.judgementFound for result in results) / judgementExpected, 3
+            )
+            if judgementExpected
+            else None
+        ),
+        "points_jugement_attendus": judgementExpected,
+        "faux_signalements": sum(len(result.falseChecks) for result in results),
         "dans_le_budget_etapes": ratio([result.withinStepBudget for result in results]),
         "etapes_medianes": percentile(steps, 0.5),
         "etapes_max": max(steps) if steps else 0.0,
