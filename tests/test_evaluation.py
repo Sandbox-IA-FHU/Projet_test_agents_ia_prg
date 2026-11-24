@@ -2,7 +2,9 @@
 
 from pathlib import Path
 
-from agent.acte import openActe, readParagraphs
+import pytest
+
+from agent.acte import describeParagraphs, openActe, readParagraphs
 from agent.evaluation import (
     VALID_TYPES,
     ReviewCase,
@@ -27,6 +29,9 @@ from agent.relecture import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEMO_SET = REPO_ROOT / "evaluations" / "jeux" / "relecture_demo.jsonl"
+SET_V2 = REPO_ROOT / "evaluations" / "jeux" / "relecture_v2.jsonl"
+# Les deux jeux restent valides : le run de référence du 24/11 cite le premier.
+REVIEW_SETS = [DEMO_SET, SET_V2]
 CHECKS_FILE = REPO_ROOT / "controles" / "controles.toml"
 JUDGEMENT_IDS = {"coherence-capital-repartition", OUT_OF_LIST}
 
@@ -135,8 +140,9 @@ def test_summaryCountsJudgementRecallAndFalsePoints() -> None:
     assert summary["jetons_par_tache"] == 120
 
 
-def test_demoSetIsWellFormed() -> None:
-    cases = loadReviewSet(DEMO_SET)
+@pytest.mark.parametrize("reviewSet", REVIEW_SETS, ids=lambda path: path.name)
+def test_demoSetIsWellFormed(reviewSet: Path) -> None:
+    cases = loadReviewSet(reviewSet)
     knownIds = {check.checkId for check in loadChecks(CHECKS_FILE)} | {OUT_OF_LIST}
 
     assert len({case.caseId for case in cases}) == len(cases)
@@ -149,14 +155,15 @@ def test_demoSetIsWellFormed() -> None:
         assert case.forbiddenChecks, case.caseId
 
 
-def test_demoSetMechanicalExpectationsHold(tmp_path: Path) -> None:
+@pytest.mark.parametrize("reviewSet", REVIEW_SETS, ids=lambda path: path.name)
+def test_demoSetMechanicalExpectationsHold(reviewSet: Path, tmp_path: Path) -> None:
     # Les contrôles du code doivent donner exactement ce que le jeu attend :
     # c'est le seuil de 100 % sur la partie mécanique, vérifié sans LLM. Un
     # échec ici veut dire que le jeu ou le code est faux, pas l'agent.
     checks = loadChecks(CHECKS_FILE)
     mechanicalIds = {c.checkId for c in checks if c.kind != KIND_JUDGEMENT}
 
-    for case in loadReviewSet(DEMO_SET):
+    for case in loadReviewSet(reviewSet):
         sheet = companySheetFromDict(case.sheet, case.caseId)
         paragraphs = readParagraphs(openActe(writeCaseActe(case, tmp_path)))
         applicable = mechanicalChecksFor(checks, sheet.forme, case.acteType)
@@ -166,3 +173,13 @@ def test_demoSetMechanicalExpectationsHold(tmp_path: Path) -> None:
         forbidden = set(case.forbiddenChecks) & mechanicalIds
         assert expected <= found, f"{case.caseId} : manqués {expected - found}"
         assert not found & forbidden, f"{case.caseId} : à tort {found & forbidden}"
+
+
+def test_longCasesExceedOneRead(tmp_path: Path) -> None:
+    # Un cas « long » ne mesure la recherche dans l'acte que si un seul
+    # lireActe ne suffit pas à le lire en entier.
+    longCases = [c for c in loadReviewSet(SET_V2) if "-long-" in c.caseId]
+    assert longCases
+    for case in longCases:
+        paragraphs = readParagraphs(openActe(writeCaseActe(case, tmp_path)))
+        assert "suite tronquée" in describeParagraphs(paragraphs), case.caseId

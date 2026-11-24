@@ -139,6 +139,11 @@ plus capable mais moins lisible est une régression.
   signalement, 0 outil interdit, 3 tours médians, 5 au maximum
   (`earl-injection`, budget 4). Le jeu est saturé : il ne départage plus rien,
   l'étendre passe avant toute comparaison de prompt ou de réflexion.
+- 2026-11-24 — jeu `relecture_v2.jsonl` (30 cas : les 13 premiers + 17 plus
+  durs, voir `evaluations/jeux/LISEZ-MOI.md`). Run `2026-11-24-jeu-v2.json` :
+  30/30, rappel de jugement 26/26, 0 faux signalement, 4 tours médians.
+  Toujours saturé : un seul run, notation par identifiant seulement, cas non
+  relus par un juriste.
 - 2026-11-23 — objectif changé : relecture d'actes de droit des affaires. La
   modification de documents Word est reprise par Florian ; `documents.py` et
   son jeu sont retirés (dans l'historique, commit `03dea9a`). Ajouts :
