@@ -134,6 +134,11 @@ plus capable mais moins lisible est une régression.
 
 ## Où en est-on
 
+- 2026-11-24 — premier run de référence (`evaluations/runs/2026-11-24-reference.json`),
+  précédé d'un essai `--limite 3` : 13/13, rappel de jugement 8/8, 0 faux
+  signalement, 0 outil interdit, 3 tours médians, 5 au maximum
+  (`earl-injection`, budget 4). Le jeu est saturé : il ne départage plus rien,
+  l'étendre passe avant toute comparaison de prompt ou de réflexion.
 - 2026-11-23 — objectif changé : relecture d'actes de droit des affaires. La
   modification de documents Word est reprise par Florian ; `documents.py` et
   son jeu sont retirés (dans l'historique, commit `03dea9a`). Ajouts :

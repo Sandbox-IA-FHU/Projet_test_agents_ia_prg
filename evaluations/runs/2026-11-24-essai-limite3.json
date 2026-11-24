@@ -1,0 +1,47 @@
+{
+  "date": "2026-11-24",
+  "modele": {
+    "nom_expose": "altoneo-llm",
+    "modele_reel": "Qwen/Qwen3.8-27B-FP8",
+    "revision": "017b9c7af6b5689d5dd426a76e0bc077eb5ca20a"
+  },
+  "prompt": "prompts/relecture_v1.md",
+  "jeu": "evaluations/jeux/relecture_demo.jsonl",
+  "controles": "controles/controles.toml",
+  "nb_cas": 3,
+  "parametres": {
+    "max_iterations": 8,
+    "max_output_tokens": 4096,
+    "reflexion": "low",
+    "garder_reflexion": false
+  },
+  "resultats": {
+    "tache_reussie": 1.0,
+    "outil_interdit_appele": 0.0,
+    "limite_iterations_atteinte": 0.0,
+    "rappel_jugement": null,
+    "points_jugement_attendus": 0,
+    "faux_signalements": 0,
+    "dans_le_budget_etapes": 1.0,
+    "etapes_medianes": 3.0,
+    "etapes_max": 3.0,
+    "jetons_entree": 18596,
+    "jetons_sortie": 4047,
+    "jetons_par_tache": 7548,
+    "latence_mediane_s": 7.314,
+    "latence_p95_s": 10.213,
+    "par_type": {
+      "nominal": {
+        "nb_cas": 2,
+        "tache_reussie": 1.0,
+        "faux_signalements": 0
+      },
+      "retenue": {
+        "nb_cas": 1,
+        "tache_reussie": 1.0,
+        "faux_signalements": 0
+      }
+    }
+  },
+  "commentaire": "Essai de fumée avant le run de référence, pas un run de référence. 3/3, aucun plafond, aucun outil interdit, 0 faux signalement. Les 3 premiers cas ne mesurent presque pas l'agent : les 2 nominaux sont tranchés par le code (terme interdit, fiche), d'où un rappel de jugement non mesuré (0 point attendu). Seul apport : la chaîne complète tourne sur le serveur (appels d'outils acceptés) et l'agent ne signale rien sur un acte conforme."
+}
