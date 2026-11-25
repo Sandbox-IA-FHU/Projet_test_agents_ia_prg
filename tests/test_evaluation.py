@@ -30,8 +30,9 @@ from agent.relecture import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEMO_SET = REPO_ROOT / "evaluations" / "jeux" / "relecture_demo.jsonl"
 SET_V2 = REPO_ROOT / "evaluations" / "jeux" / "relecture_v2.jsonl"
+SET_V3 = REPO_ROOT / "evaluations" / "jeux" / "relecture_v3.jsonl"
 # Les deux jeux restent valides : le run de référence du 24/11 cite le premier.
-REVIEW_SETS = [DEMO_SET, SET_V2]
+REVIEW_SETS = [DEMO_SET, SET_V2, SET_V3]
 CHECKS_FILE = REPO_ROOT / "controles" / "controles.toml"
 JUDGEMENT_IDS = {"coherence-capital-repartition", OUT_OF_LIST}
 
