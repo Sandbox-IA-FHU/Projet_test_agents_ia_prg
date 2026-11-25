@@ -134,9 +134,10 @@ plus capable mais moins lisible est une régression.
 
 ## Où en est-on
 
-- 2026-11-25 — jeu `relecture_v3.jsonl` (41 cas : les 30 de la v2 + 11 cas de
-  niche à clause copiée-collée, signalée en `hors_liste`, aucun nouveau
-  contrôle). Tests hors ligne verts. Aucun run.
+- 2026-11-25 — jeu `relecture_v3.jsonl` (45 cas : les 30 de la v2 + 11 cas de
+  niche à clause copiée-collée, signalée en `hors_liste`, + 4 cas de GFA tirés
+  d'erreurs réelles décrites sans donnée). Nouveau contrôle `terme_interdit`
+  `gfa-terme-scea`. Tests hors ligne verts. Aucun run.
 - 2026-11-24 — premier run de référence (`evaluations/runs/2026-11-24-reference.json`),
   précédé d'un essai `--limite 3` : 13/13, rappel de jugement 8/8, 0 faux
   signalement, 0 outil interdit, 3 tours médians, 5 au maximum

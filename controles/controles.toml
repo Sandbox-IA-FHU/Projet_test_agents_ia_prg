@@ -107,6 +107,21 @@ actes = ["statuts"]
 description = "Gérance d'EARL."
 consigne = "Chaque gérant désigné est-il une personne physique et un associé exploitant de l'EARL ?"
 
+# --- GFA (groupement foncier agricole) --------------------------------------
+# Limite connue : un GFA peut mentionner à bon droit une SCEA (son preneur à
+# bail, par exemple). Le contrôle la signalerait aussi ; à trancher avec les
+# juristes.
+
+[[controle]]
+id = "gfa-terme-scea"
+type = "terme_interdit"
+terme = "société civile d'exploitation agricole"
+remplacement = "groupement foncier agricole"
+gravite = "majeur"
+formes = ["GFA"]
+actes = ["*"]
+description = "Un GFA n'est pas une SCEA : erreur connue de la bibliothèque de clauses (en-tête des actes de GFA)."
+
 # --- SARL ------------------------------------------------------------------
 
 [[controle]]

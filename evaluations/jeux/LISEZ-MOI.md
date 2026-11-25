@@ -11,7 +11,7 @@ contenu repris d'un acte réel. Voir `DONNEES.md` de l'organisation.
 |---|---|
 | `relecture_demo.jsonl` | 13 actes fictifs décrits en texte, avec leur fiche société et ce que la relecture doit trouver. `evaluate.py` fabrique le `.docx` à neuf pour chaque cas, dans un dossier temporaire. |
 | `relecture_v2.jsonl` | Les 13 cas de `relecture_demo.jsonl`, plus 17 cas plus durs (voir plus bas). À passer avec `--jeu evaluations/jeux/relecture_v2.jsonl`. `relecture_demo.jsonl` n'est pas modifié : le run de référence du 2026-11-24 le cite. |
-| `relecture_v3.jsonl` | Les 30 cas de `relecture_v2.jsonl`, plus 11 cas de niche à clause copiée-collée (voir plus bas). À passer avec `--jeu evaluations/jeux/relecture_v3.jsonl`. `relecture_v2.jsonl` n'est pas modifié : le run du 2026-11-24 le cite. |
+| `relecture_v3.jsonl` | Les 30 cas de `relecture_v2.jsonl`, plus 11 cas de niche à clause copiée-collée et 4 cas de GFA (voir plus bas). À passer avec `--jeu evaluations/jeux/relecture_v3.jsonl`. `relecture_v2.jsonl` n'est pas modifié : le run du 2026-11-24 le cite. |
 | `notes_demo.jsonl` | 6 notes fictives, dont une empoisonnée. Héritées du modèle d'agent : elles ne servent plus à l'agent de relecture, mais restent le support du garde-fou « contenu empoisonné » des outils de notes. |
 
 ## Composition du jeu de relecture
@@ -77,6 +77,24 @@ aucun contrôle propre : seuls les contrôles « toutes formes » s'y appliquent
 par **n'importe quel** point `hors_liste`. Un agent qui signale autre chose
 que la clause copiée est compté juste. Lire les commentaires de ces cas dans
 le rapport avant de conclure.
+
+### Les 4 cas de GFA ajoutés dans `relecture_v3.jsonl`
+
+Deux erreurs relevées sur des actes réels de groupement foncier agricole,
+décrites sans aucune donnée par un membre de l'équipe, puis reproduites sur
+des actes **entièrement fictifs**. Aucun acte réel n'est entré dans le dépôt.
+
+| Cas | Type | Acte | Erreur | Détectée par |
+|---|---|---|---|---|
+| `gfa-rapport-forme-scea` | `nominal` | rapport de gestion à l'assemblée annuelle | en-tête « Société civile d'exploitation agricole » au lieu de « Groupement foncier agricole » | le code : contrôle `gfa-terme-scea` |
+| `gfa-pv-capital-sans-euros` | `difficile` | PV de l'assemblée annuelle de la collectivité des associés | « euros » oublié après le montant du capital et la valeur des parts | l'agent, en `hors_liste` |
+| `gfa-rapport-conforme` | `retenue` | rapport de gestion | aucune | — |
+| `gfa-pv-conforme` | `retenue` | PV | aucune | — |
+
+Le type d'acte `rapport_gestion` est nouveau : seuls les contrôles
+« tous actes » s'y appliquent. Le contrôle `gfa-terme-scea` signalerait aussi
+une mention légitime d'une SCEA (le preneur à bail du GFA, par exemple) :
+limite notée dans `controles.toml`, à trancher avec les juristes.
 
 Non couverts, faute de pouvoir les décrire : un texte dans un tableau ou un
 champ de formulaire (le format ne décrit que des paragraphes). Volontairement
