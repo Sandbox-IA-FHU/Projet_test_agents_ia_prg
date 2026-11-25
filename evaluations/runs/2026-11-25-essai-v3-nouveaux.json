@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-25",
+  "modele": {
+    "nom_expose": "altoneo-llm",
+    "modele_reel": "Qwen/Qwen3.8-27B-FP8",
+    "revision": "017b9c7af6b5689d5dd426a76e0bc077eb5ca20a"
+  },
+  "prompt": "prompts/relecture_v1.md",
+  "jeu": "evaluations/jeux/relecture_v3_nouveaux.jsonl",
+  "controles": "controles/controles.toml",
+  "nb_cas": 15,
+  "parametres": {
+    "max_iterations": 8,
+    "max_output_tokens": 4096,
+    "reflexion": "low",
+    "garder_reflexion": false
+  },
+  "resultats": {
+    "tache_reussie": 0.6,
+    "outil_interdit_appele": 0.0,
+    "limite_iterations_atteinte": 0.0,
+    "rappel_jugement": 0.333,
+    "points_jugement_attendus": 9,
+    "faux_signalements": 0,
+    "dans_le_budget_etapes": 1.0,
+    "etapes_medianes": 3.0,
+    "etapes_max": 4.0,
+    "jetons_entree": 95317,
+    "jetons_sortie": 17762,
+    "jetons_par_tache": 7539,
+    "latence_mediane_s": 7.368,
+    "latence_p95_s": 10.856,
+    "par_type": {
+      "nominal": {
+        "nb_cas": 3,
+        "tache_reussie": 0.667,
+        "faux_signalements": 0
+      },
+      "difficile": {
+        "nb_cas": 7,
+        "tache_reussie": 0.286,
+        "faux_signalements": 0
+      },
+      "retenue": {
+        "nb_cas": 5,
+        "tache_reussie": 1.0,
+        "faux_signalements": 0
+      }
+    }
+  },
+  "commentaire": "Essai sur les 15 cas ajoutés à la v3 (sous-ensemble relecture_v3_nouveaux.jsonl), un seul run. 9/15 : 0 outil interdit, 0 plafond, 0 faux signalement, 5/5 cas retenue réussis. Les 6 échecs sont tous des erreurs non signalées : l'agent ne trouve que 3 des 9 erreurs hors liste (clauses copiées-collées, « euros » oublié dans le PV de GFA). Le cas détecté par le code (GFA en SCEA) est réussi. Cas non relus par un juriste ; détail par cas non conservé."
+}
