@@ -148,6 +148,10 @@ plus capable mais moins lisible est une régression.
   défaut) : 82/90, 0 faux signalement, retenue 28/28, aucun cas instable
   entre ses deux runs. Seuil de 83/90 manqué d'un cas : v1 conservée par
   défaut. Perte propre à la v3 : `selarl-copie-objet-commercial`.
+- 2026-11-26 (fin de journée) — prompt `relecture_v4.md` (v3 + une règle :
+  l'objet social doit correspondre à l'activité propre à la forme ; règle à
+  faire valider par un juriste). **Non mesuré** : runs arrêtés au lancement,
+  à refaire en deux runs contre le seuil de 83/90.
 - 2026-11-25 — jeu `relecture_v3.jsonl` (45 cas : les 30 de la v2 + 11 cas de
   niche à clause copiée-collée, signalée en `hors_liste`, + 4 cas de GFA tirés
   d'erreurs réelles décrites sans donnée). Nouveau contrôle `terme_interdit`
