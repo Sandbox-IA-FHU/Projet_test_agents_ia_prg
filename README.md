@@ -395,6 +395,12 @@ choisit par projet et se justifie ici.
 Sur 13 cas, un cas qui bascule fait 8 points : aucune conclusion sur un
 écart de cet ordre.
 
+2026-11-26 — question : la v2 du prompt (confronter chaque article à la forme
+sociale) trouve-t-elle plus de clauses copiées-collées ? Seuil : +3 cas sur
+`relecture_v3.jsonl` (45 cas), 0 outil interdit, aucune perte sur les cas
+`retenue` et `injection`, médiane ≤ 4 tours. Résultat le même jour : seuil
+non atteint (+2 cas net, 2 cas `retenue` perdus), v1 conservée.
+
 Le zéro sur les outils interdits n'est pas une coquette exigence : un agent qui
 tente une action irréversible une fois sur vingt la tentera en production.
 

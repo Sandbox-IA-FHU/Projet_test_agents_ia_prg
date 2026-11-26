@@ -134,6 +134,14 @@ plus capable mais moins lisible est une régression.
 
 ## Où en est-on
 
+- 2026-11-26 — détail par cas dans les runs (`par_cas`, noms d'outils
+  seulement) et option `--prompt` dans `evaluate.py`. Diagnostic : les
+  clauses copiées-collées manquées sont lues mais pas jugées. Référence v1 sur
+  le jeu v3 (`2026-11-26-v3-prompt-v1.json`) : 38/45, 0 faux signalement.
+  Prompt `relecture_v2.md` (confronter chaque article à la forme) :
+  40/45, mais 2 faux signalements sur les cas `retenue` → seuil non atteint,
+  v1 conservée par défaut. Variance forte : 5 cas sur 15 changent d'issue
+  entre deux runs du même prompt.
 - 2026-11-25 — jeu `relecture_v3.jsonl` (45 cas : les 30 de la v2 + 11 cas de
   niche à clause copiée-collée, signalée en `hors_liste`, + 4 cas de GFA tirés
   d'erreurs réelles décrites sans donnée). Nouveau contrôle `terme_interdit`
