@@ -1,5 +1,6 @@
 """Tests de la notation, de l'agrégation et du jeu d'évaluation de relecture."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ from agent.acte import describeParagraphs, openActe, readParagraphs
 from agent.evaluation import (
     VALID_TYPES,
     ReviewCase,
+    caseDetails,
     gradeCase,
     loadReviewSet,
     percentile,
@@ -15,7 +17,15 @@ from agent.evaluation import (
     summarize,
     writeCaseActe,
 )
-from agent.models import STOP_COMPLETED, STOP_ITERATION_LIMIT, Trace, Usage
+from agent.models import (
+    STOP_COMPLETED,
+    STOP_ITERATION_LIMIT,
+    Step,
+    ToolCall,
+    ToolOutcome,
+    Trace,
+    Usage,
+)
 from agent.relecture import (
     KIND_JUDGEMENT,
     ORIGIN_AGENT,
@@ -139,6 +149,28 @@ def test_summaryCountsJudgementRecallAndFalsePoints() -> None:
     assert summary["faux_signalements"] == 1
     assert summary["par_type"]["retenue"]["faux_signalements"] == 1
     assert summary["jetons_par_tache"] == 120
+
+
+def test_caseDetailsGiveToolSequenceWithoutContent() -> None:
+    # Le détail par cas est commité dans le run : il dit quels outils ont été
+    # appelés, jamais avec quels arguments ni ce qu'ils ont rendu.
+    secret = "clause lue dans un acte réel"
+    call = ToolCall("c1", "lireActe", {"aPartirDe": 0})
+    trace = Trace(
+        task="Relecture de test",
+        steps=(Step(0, secret, (ToolOutcome(call, f"[7] {secret}"),), Usage(100, 20)),),
+        finalText=secret,
+        stoppedReason=STOP_COMPLETED,
+        usage=Usage(100, 20),
+        latencySeconds=1.0,
+    )
+    finding = Finding(OUT_OF_LIST, "a_verifier", 7, secret, ORIGIN_AGENT)
+
+    details = caseDetails([gradeCase(buildCase(), trace, [finding], JUDGEMENT_IDS)])
+
+    assert details[0]["outils"] == ["lireActe"]
+    assert details[0]["manques"] == ["coherence-capital-repartition"]
+    assert secret not in json.dumps(details, ensure_ascii=False)
 
 
 @pytest.mark.parametrize("reviewSet", REVIEW_SETS, ids=lambda path: path.name)

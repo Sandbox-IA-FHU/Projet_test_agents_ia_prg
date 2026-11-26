@@ -37,7 +37,13 @@ from agent.client import (
 )
 from agent.config import loadConfig
 from agent.errors import ActeError, ConfigError, ModelCallError, ReviewInputError
-from agent.evaluation import gradeCase, loadReviewSet, summarize, writeCaseActe
+from agent.evaluation import (
+    caseDetails,
+    gradeCase,
+    loadReviewSet,
+    summarize,
+    writeCaseActe,
+)
 from agent.loop import MAX_ITERATIONS
 from agent.relecture import (
     KIND_JUDGEMENT,
@@ -208,6 +214,7 @@ def main() -> int:
             "garder_reflexion": args.garderReflexion,
         },
         "resultats": summary,
+        "par_cas": caseDetails(results),
         "commentaire": "",
     }
 

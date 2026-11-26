@@ -70,6 +70,7 @@ class CaseResult:
     inputTokens: int
     outputTokens: int
     latencySeconds: float
+    toolNames: tuple[str, ...] = ()
 
 
 def loadReviewSet(path: Path) -> list[ReviewCase]:
@@ -169,6 +170,7 @@ def gradeCase(
         inputTokens=trace.usage.inputTokens,
         outputTokens=trace.usage.outputTokens,
         latencySeconds=trace.latencySeconds,
+        toolNames=tuple(trace.toolNames()),
     )
 
 
@@ -241,3 +243,26 @@ def summarize(results: list[CaseResult]) -> dict[str, object]:
         "latence_p95_s": percentile(latencies, 0.95),
         "par_type": byType,
     }
+
+
+def caseDetails(results: list[CaseResult]) -> list[dict[str, object]]:
+    """Le détail par cas, pour savoir *quels* cas ont échoué et comment.
+
+    Seulement des identifiants, des compteurs et des noms d'outils : jamais un
+    argument d'appel ni un commentaire, qui reprennent le texte de l'acte (même
+    règle que `summarizeTrace`). La séquence d'outils suffit à distinguer un
+    agent qui n'a pas lu le paragraphe fautif d'un agent qui l'a lu sans le
+    juger faux.
+    """
+    return [
+        {
+            "cas_id": result.case.caseId,
+            "type": result.case.caseType,
+            "reussi": result.succeeded,
+            "manques": list(result.missedChecks),
+            "a_tort": list(result.falseChecks),
+            "etapes": result.stepCount,
+            "outils": list(result.toolNames),
+        }
+        for result in results
+    ]

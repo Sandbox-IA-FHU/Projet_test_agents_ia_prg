@@ -1,0 +1,260 @@
+{
+  "date": "2026-11-26",
+  "modele": {
+    "nom_expose": "altoneo-llm",
+    "modele_reel": "Qwen/Qwen3.8-27B-FP8",
+    "revision": "017b9c7af6b5689d5dd426a76e0bc077eb5ca20a"
+  },
+  "prompt": "prompts/relecture_v1.md",
+  "jeu": "evaluations/jeux/relecture_v3_nouveaux.jsonl",
+  "controles": "controles/controles.toml",
+  "nb_cas": 15,
+  "parametres": {
+    "max_iterations": 8,
+    "max_output_tokens": 4096,
+    "reflexion": "low",
+    "garder_reflexion": false
+  },
+  "resultats": {
+    "tache_reussie": 0.6,
+    "outil_interdit_appele": 0.0,
+    "limite_iterations_atteinte": 0.0,
+    "rappel_jugement": 0.333,
+    "points_jugement_attendus": 9,
+    "faux_signalements": 0,
+    "dans_le_budget_etapes": 1.0,
+    "etapes_medianes": 3.0,
+    "etapes_max": 4.0,
+    "jetons_entree": 94564,
+    "jetons_sortie": 16746,
+    "jetons_par_tache": 7421,
+    "latence_mediane_s": 6.584,
+    "latence_p95_s": 10.59,
+    "par_type": {
+      "nominal": {
+        "nb_cas": 3,
+        "tache_reussie": 1.0,
+        "faux_signalements": 0
+      },
+      "difficile": {
+        "nb_cas": 7,
+        "tache_reussie": 0.143,
+        "faux_signalements": 0
+      },
+      "retenue": {
+        "nb_cas": 5,
+        "tache_reussie": 1.0,
+        "faux_signalements": 0
+      }
+    }
+  },
+  "par_cas": [
+    {
+      "cas_id": "earl-copie-objet-commercial",
+      "type": "difficile",
+      "reussi": false,
+      "manques": [
+        "hors_liste"
+      ],
+      "a_tort": [],
+      "etapes": 2,
+      "outils": [
+        "lireActe",
+        "chercherDansActe"
+      ]
+    },
+    {
+      "cas_id": "earl-copie-entreprise-et-objet",
+      "type": "difficile",
+      "reussi": false,
+      "manques": [
+        "hors_liste"
+      ],
+      "a_tort": [],
+      "etapes": 3,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe"
+      ]
+    },
+    {
+      "cas_id": "earl-objet-agricole-large",
+      "type": "retenue",
+      "reussi": true,
+      "manques": [],
+      "a_tort": [],
+      "etapes": 3,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "chercherDansActe",
+        "lireActe"
+      ]
+    },
+    {
+      "cas_id": "scea-copie-forme-sarl",
+      "type": "nominal",
+      "reussi": true,
+      "manques": [],
+      "a_tort": [],
+      "etapes": 4,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "lireActe",
+        "signalerPoint"
+      ]
+    },
+    {
+      "cas_id": "scea-copie-responsabilite-limitee",
+      "type": "difficile",
+      "reussi": false,
+      "manques": [
+        "hors_liste"
+      ],
+      "a_tort": [],
+      "etapes": 3,
+      "outils": [
+        "chercherDansActe",
+        "lireActe"
+      ]
+    },
+    {
+      "cas_id": "scea-chevaux-objet-restauration",
+      "type": "difficile",
+      "reussi": false,
+      "manques": [
+        "hors_liste"
+      ],
+      "a_tort": [],
+      "etapes": 3,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "lireActe"
+      ]
+    },
+    {
+      "cas_id": "scea-chevaux-forme-earl",
+      "type": "difficile",
+      "reussi": true,
+      "manques": [],
+      "a_tort": [],
+      "etapes": 4,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "lireActe",
+        "signalerPoint"
+      ]
+    },
+    {
+      "cas_id": "scea-chevaux-conforme",
+      "type": "retenue",
+      "reussi": true,
+      "manques": [],
+      "a_tort": [],
+      "etapes": 3,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "chercherDansActe"
+      ]
+    },
+    {
+      "cas_id": "selarl-copie-objet-commercial",
+      "type": "difficile",
+      "reussi": false,
+      "manques": [
+        "hors_liste"
+      ],
+      "a_tort": [],
+      "etapes": 3,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "lireActe"
+      ]
+    },
+    {
+      "cas_id": "selarl-copie-president-sas",
+      "type": "nominal",
+      "reussi": true,
+      "manques": [],
+      "a_tort": [],
+      "etapes": 4,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "lireActe",
+        "signalerPoint"
+      ]
+    },
+    {
+      "cas_id": "selarl-conforme",
+      "type": "retenue",
+      "reussi": true,
+      "manques": [],
+      "a_tort": [],
+      "etapes": 2,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe"
+      ]
+    },
+    {
+      "cas_id": "gfa-rapport-forme-scea",
+      "type": "nominal",
+      "reussi": true,
+      "manques": [],
+      "a_tort": [],
+      "etapes": 4,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "lireActe"
+      ]
+    },
+    {
+      "cas_id": "gfa-rapport-conforme",
+      "type": "retenue",
+      "reussi": true,
+      "manques": [],
+      "a_tort": [],
+      "etapes": 2,
+      "outils": [
+        "chercherDansActe"
+      ]
+    },
+    {
+      "cas_id": "gfa-pv-capital-sans-euros",
+      "type": "difficile",
+      "reussi": false,
+      "manques": [
+        "hors_liste"
+      ],
+      "a_tort": [],
+      "etapes": 4,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "chercherDansActe",
+        "lireActe"
+      ]
+    },
+    {
+      "cas_id": "gfa-pv-conforme",
+      "type": "retenue",
+      "reussi": true,
+      "manques": [],
+      "a_tort": [],
+      "etapes": 3,
+      "outils": [
+        "chercherDansActe",
+        "chercherDansActe",
+        "lireActe"
+      ]
+    }
+  ],
+  "commentaire": "Run de diagnostic : mêmes 15 cas, même prompt et mêmes paramètres que l'essai du 25/11, relancé pour obtenir le détail par cas (nouveau bloc par_cas, noms d'outils seulement). 9/15 de nouveau, les mêmes types d'échec : 6 points hors_liste manqués, 0 faux signalement, 0 outil interdit, 0 plafond, 5/5 retenue. Diagnostic : dans 5 des 6 échecs, l'agent a appelé lireActe, et chaque acte tient en une lecture (moins de 1 600 caractères pour un plafond de 3 500) ; l'argument aPartirDe n'est pas consigné, donc la lecture complète est probable mais non prouvée. Un seul échec sans lecture (earl-copie-entreprise-et-objet). Les erreurs trouvées sont des noms de forme explicites (SARL, président de SAS, EARL dans une SCEA) ; les manquées demandent de confronter une clause à la forme sociale (objet commercial dans une EARL ou une SELARL, restauration dans une SCEA, responsabilité limitée dans une SCEA, montant sans « euros »). Cause principale : le jugement, pas la lecture. Le prompt v1 organise le travail contrôle par contrôle et ne mentionne hors_liste qu'en passant. Un seul run, cas non relus par un juriste."
+}
