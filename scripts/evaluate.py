@@ -65,6 +65,12 @@ def buildParser() -> argparse.ArgumentParser:
     parser.add_argument("--jeu", type=Path, default=DEFAULT_SET)
     parser.add_argument("--controles", type=Path, default=DEFAULT_CHECKS)
     parser.add_argument(
+        "--prompt",
+        type=Path,
+        default=DEFAULT_PROMPT,
+        help=f"Prompt système (défaut : {DEFAULT_PROMPT}). Consigné dans le run.",
+    )
+    parser.add_argument(
         "--etiquette", default="run", help="Suffixe du nom de fichier de run."
     )
     parser.add_argument(
@@ -145,13 +151,17 @@ def main() -> int:
     except ModelCallError as error:
         print(f"Modèle : {error}", file=sys.stderr)
         return 1
-    systemPrompt = DEFAULT_PROMPT.read_text(encoding="utf-8")
+    try:
+        systemPrompt = args.prompt.read_text(encoding="utf-8")
+    except OSError as error:
+        print(f"Prompt : {args.prompt} illisible ({error.strerror}).", file=sys.stderr)
+        return 1
 
     print(
         f"{len(cases)} cas, modèle {config.model} ({servedModel}), "
         f"réflexion {args.reflexion} (gardée dans l'historique : "
         f"{'oui' if args.garderReflexion else 'non'}), "
-        f"prompt {DEFAULT_PROMPT.name}."
+        f"prompt {args.prompt.name}."
     )
     print(f"Jusqu'à {args.maxIterations * len(cases)} appels au LLM partagé.")
 
@@ -203,7 +213,7 @@ def main() -> int:
             "modele_reel": servedModel,
             "revision": config.modelRevision,
         },
-        "prompt": f"prompts/{DEFAULT_PROMPT.name}",
+        "prompt": str(args.prompt).replace("\\", "/"),
         "jeu": str(args.jeu).replace("\\", "/"),
         "controles": str(args.controles).replace("\\", "/"),
         "nb_cas": len(results),
