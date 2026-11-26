@@ -142,6 +142,12 @@ plus capable mais moins lisible est une régression.
   40/45, mais 2 faux signalements sur les cas `retenue` → seuil non atteint,
   v1 conservée par défaut. Variance forte : 5 cas sur 15 changent d'issue
   entre deux runs du même prompt.
+- 2026-11-26 (après-midi) — seuil réécrit sur deux runs (README). Deuxième
+  run de v1 et v2 : 77/90 et 81/90 sur deux runs. Prompt `relecture_v3.md`
+  (point hors liste seulement sur contradiction nommée, `a_verifier` par
+  défaut) : 82/90, 0 faux signalement, retenue 28/28, aucun cas instable
+  entre ses deux runs. Seuil de 83/90 manqué d'un cas : v1 conservée par
+  défaut. Perte propre à la v3 : `selarl-copie-objet-commercial`.
 - 2026-11-25 — jeu `relecture_v3.jsonl` (45 cas : les 30 de la v2 + 11 cas de
   niche à clause copiée-collée, signalée en `hors_liste`, + 4 cas de GFA tirés
   d'erreurs réelles décrites sans donnée). Nouveau contrôle `terme_interdit`
