@@ -152,6 +152,13 @@ plus capable mais moins lisible est une régression.
   l'objet social doit correspondre à l'activité propre à la forme ; règle à
   faire valider par un juriste). **Non mesuré** : runs arrêtés au lancement,
   à refaire en deux runs contre le seuil de 83/90.
+- 2026-11-27 — deux runs de la v4 (`2026-11-27-v3-prompt-v4*.json`) :
+  43/45 et 41/45, soit 84/90, 0 outil interdit, 0 plafond, 1 faux
+  signalement (`sarl-long-conforme`), retenue 27/28, médiane 3. Seuil atteint
+  sur tous les critères, mais à 1 cas près, et 4 cas instables entre les deux
+  runs (0 pour la v3). Gain stable : `earl-copie-entreprise-et-objet`.
+  **v1 conservée par défaut** tant que la règle sur l'objet social n'est pas
+  validée par un juriste.
 - 2026-11-25 — jeu `relecture_v3.jsonl` (45 cas : les 30 de la v2 + 11 cas de
   niche à clause copiée-collée, signalée en `hors_liste`, + 4 cas de GFA tirés
   d'erreurs réelles décrites sans donnée). Nouveau contrôle `terme_interdit`
